@@ -36,6 +36,7 @@ const FILTERS = [
   { value: 'member_join', label: 'Joins' },
   { value: 'member_leave', label: 'Leaves' },
   { value: 'scheduled', label: 'Scheduled' },
+  { value: 'reminder', label: 'Reminders' },
   { value: 'error', label: 'Errors' },
 ] as const
 
@@ -45,6 +46,7 @@ const EVENT_LABELS: Record<ActivityType, string> = {
   member_join: 'Joined',
   member_leave: 'Left',
   scheduled: 'Scheduled',
+  reminder: 'Reminder',
   error: 'Error',
 }
 
@@ -75,6 +77,8 @@ function describe(entry: ActivityDto) {
         return `Skipped "${entry.name}": the bot was offline when it was due`
       }
       return meta.manual ? `Sent "${entry.name}" (Send now)` : `Sent "${entry.name}"`
+    case 'reminder':
+      return meta.via === 'dm' ? `Reminded by DM: ${entry.name}` : `Reminded: ${entry.name}`
     case 'error':
       return typeof meta.message === 'string' ? meta.message : (entry.name ?? 'Error')
     default:

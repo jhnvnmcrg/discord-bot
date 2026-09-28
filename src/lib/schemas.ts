@@ -13,6 +13,9 @@ const hexColor = z
 
 export const MAX_COMMANDS_PER_GUILD = 100
 
+/** Built-in commands the bot registers itself; custom commands can't reuse them. */
+export const RESERVED_COMMAND_NAMES = ['remind']
+
 export const embedFields = z.object({
   title: z.string().max(256),
   description: z.string().max(4096),
@@ -60,7 +63,11 @@ export const commandFields = z.object({
       /^[-_\p{L}\p{N}]{1,32}$/u,
       'Use 1–32 letters, numbers, dashes or underscores, with no spaces',
     )
-    .refine((name) => name === name.toLowerCase(), 'Use lowercase letters'),
+    .refine((name) => name === name.toLowerCase(), 'Use lowercase letters')
+    .refine(
+      (name) => !RESERVED_COMMAND_NAMES.includes(name),
+      'This name is used by a built-in command',
+    ),
   description: z
     .string()
     .trim()
@@ -195,3 +202,17 @@ export const scheduledMessageInput =
   scheduledMessageFields.superRefine(refineReply)
 
 export type ScheduledMessageInput = z.infer<typeof scheduledMessageInput>
+
+export const MAX_REMINDERS_PER_MEMBER_LIMIT = 50
+
+export const reminderSettingsInput = z.object({
+  enabled: z.boolean(),
+  defaultTimezone: z.string().refine(isValidTimezone, 'Pick a time zone'),
+  maxPerMember: z
+    .number()
+    .int()
+    .min(1, 'Allow at least 1')
+    .max(MAX_REMINDERS_PER_MEMBER_LIMIT, `At most ${MAX_REMINDERS_PER_MEMBER_LIMIT}`),
+})
+
+export type ReminderSettingsInput = z.infer<typeof reminderSettingsInput>

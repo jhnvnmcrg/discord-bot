@@ -20,6 +20,7 @@ import { Route as ApiGuildsIndexRouteImport } from './routes/api/guilds/index'
 import { Route as DashboardGuildIdIndexRouteImport } from './routes/dashboard/$guildId/index'
 import { Route as DashboardGuildIdActivityRouteImport } from './routes/dashboard/$guildId/activity'
 import { Route as DashboardGuildIdCommandsRouteImport } from './routes/dashboard/$guildId/commands'
+import { Route as DashboardGuildIdRemindersRouteImport } from './routes/dashboard/$guildId/reminders'
 import { Route as DashboardGuildIdRespondersRouteImport } from './routes/dashboard/$guildId/responders'
 import { Route as DashboardGuildIdSchedulesRouteImport } from './routes/dashboard/$guildId/schedules'
 import { Route as DashboardGuildIdWelcomeRouteImport } from './routes/dashboard/$guildId/welcome'
@@ -30,6 +31,9 @@ import { Route as ApiGuildsGuildIdRolesRouteImport } from './routes/api/guilds/$
 import { Route as ApiGuildsGuildIdWelcomeRouteImport } from './routes/api/guilds/$guildId/welcome'
 import { Route as ApiGuildsGuildIdCommandsIndexRouteImport } from './routes/api/guilds/$guildId/commands/index'
 import { Route as ApiGuildsGuildIdCommandsIdRouteImport } from './routes/api/guilds/$guildId/commands/$id'
+import { Route as ApiGuildsGuildIdRemindersIndexRouteImport } from './routes/api/guilds/$guildId/reminders/index'
+import { Route as ApiGuildsGuildIdRemindersIdRouteImport } from './routes/api/guilds/$guildId/reminders/$id'
+import { Route as ApiGuildsGuildIdRemindersSettingsRouteImport } from './routes/api/guilds/$guildId/reminders/settings'
 import { Route as ApiGuildsGuildIdRespondersIndexRouteImport } from './routes/api/guilds/$guildId/responders/index'
 import { Route as ApiGuildsGuildIdRespondersIdRouteImport } from './routes/api/guilds/$guildId/responders/$id'
 import { Route as ApiGuildsGuildIdSchedulesIndexRouteImport } from './routes/api/guilds/$guildId/schedules/index'
@@ -93,6 +97,12 @@ const DashboardGuildIdCommandsRoute =
     path: '/commands',
     getParentRoute: () => DashboardGuildIdRouteRoute,
   } as any)
+const DashboardGuildIdRemindersRoute =
+  DashboardGuildIdRemindersRouteImport.update({
+    id: '/reminders',
+    path: '/reminders',
+    getParentRoute: () => DashboardGuildIdRouteRoute,
+  } as any)
 const DashboardGuildIdRespondersRoute =
   DashboardGuildIdRespondersRouteImport.update({
     id: '/responders',
@@ -149,6 +159,24 @@ const ApiGuildsGuildIdCommandsIdRoute =
     path: '/guilds/$guildId/commands/$id',
     getParentRoute: () => ApiRouteRoute,
   } as any)
+const ApiGuildsGuildIdRemindersIndexRoute =
+  ApiGuildsGuildIdRemindersIndexRouteImport.update({
+    id: '/guilds/$guildId/reminders/',
+    path: '/guilds/$guildId/reminders/',
+    getParentRoute: () => ApiRouteRoute,
+  } as any)
+const ApiGuildsGuildIdRemindersIdRoute =
+  ApiGuildsGuildIdRemindersIdRouteImport.update({
+    id: '/guilds/$guildId/reminders/$id',
+    path: '/guilds/$guildId/reminders/$id',
+    getParentRoute: () => ApiRouteRoute,
+  } as any)
+const ApiGuildsGuildIdRemindersSettingsRoute =
+  ApiGuildsGuildIdRemindersSettingsRouteImport.update({
+    id: '/guilds/$guildId/reminders/settings',
+    path: '/guilds/$guildId/reminders/settings',
+    getParentRoute: () => ApiRouteRoute,
+  } as any)
 const ApiGuildsGuildIdRespondersIndexRoute =
   ApiGuildsGuildIdRespondersIndexRouteImport.update({
     id: '/guilds/$guildId/responders/',
@@ -190,6 +218,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/$guildId/activity': typeof DashboardGuildIdActivityRoute
   '/dashboard/$guildId/commands': typeof DashboardGuildIdCommandsRoute
+  '/dashboard/$guildId/reminders': typeof DashboardGuildIdRemindersRoute
   '/dashboard/$guildId/responders': typeof DashboardGuildIdRespondersRoute
   '/dashboard/$guildId/schedules': typeof DashboardGuildIdSchedulesRoute
   '/dashboard/$guildId/welcome': typeof DashboardGuildIdWelcomeRoute
@@ -201,8 +230,11 @@ export interface FileRoutesByFullPath {
   '/api/guilds/$guildId/welcome': typeof ApiGuildsGuildIdWelcomeRoute
   '/api/guilds/$guildId/': typeof ApiGuildsGuildIdIndexRoute
   '/api/guilds/$guildId/commands/$id': typeof ApiGuildsGuildIdCommandsIdRoute
+  '/api/guilds/$guildId/reminders/$id': typeof ApiGuildsGuildIdRemindersIdRoute
+  '/api/guilds/$guildId/reminders/settings': typeof ApiGuildsGuildIdRemindersSettingsRoute
   '/api/guilds/$guildId/responders/$id': typeof ApiGuildsGuildIdRespondersIdRoute
   '/api/guilds/$guildId/commands/': typeof ApiGuildsGuildIdCommandsIndexRoute
+  '/api/guilds/$guildId/reminders/': typeof ApiGuildsGuildIdRemindersIndexRoute
   '/api/guilds/$guildId/responders/': typeof ApiGuildsGuildIdRespondersIndexRoute
   '/api/guilds/$guildId/schedules/': typeof ApiGuildsGuildIdSchedulesIndexRoute
   '/api/guilds/$guildId/schedules/$id/send': typeof ApiGuildsGuildIdSchedulesIdSendRoute
@@ -216,6 +248,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/$guildId/activity': typeof DashboardGuildIdActivityRoute
   '/dashboard/$guildId/commands': typeof DashboardGuildIdCommandsRoute
+  '/dashboard/$guildId/reminders': typeof DashboardGuildIdRemindersRoute
   '/dashboard/$guildId/responders': typeof DashboardGuildIdRespondersRoute
   '/dashboard/$guildId/schedules': typeof DashboardGuildIdSchedulesRoute
   '/dashboard/$guildId/welcome': typeof DashboardGuildIdWelcomeRoute
@@ -227,8 +260,11 @@ export interface FileRoutesByTo {
   '/api/guilds/$guildId/welcome': typeof ApiGuildsGuildIdWelcomeRoute
   '/api/guilds/$guildId': typeof ApiGuildsGuildIdIndexRoute
   '/api/guilds/$guildId/commands/$id': typeof ApiGuildsGuildIdCommandsIdRoute
+  '/api/guilds/$guildId/reminders/$id': typeof ApiGuildsGuildIdRemindersIdRoute
+  '/api/guilds/$guildId/reminders/settings': typeof ApiGuildsGuildIdRemindersSettingsRoute
   '/api/guilds/$guildId/responders/$id': typeof ApiGuildsGuildIdRespondersIdRoute
   '/api/guilds/$guildId/commands': typeof ApiGuildsGuildIdCommandsIndexRoute
+  '/api/guilds/$guildId/reminders': typeof ApiGuildsGuildIdRemindersIndexRoute
   '/api/guilds/$guildId/responders': typeof ApiGuildsGuildIdRespondersIndexRoute
   '/api/guilds/$guildId/schedules': typeof ApiGuildsGuildIdSchedulesIndexRoute
   '/api/guilds/$guildId/schedules/$id/send': typeof ApiGuildsGuildIdSchedulesIdSendRoute
@@ -245,6 +281,7 @@ export interface FileRoutesById {
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/$guildId/activity': typeof DashboardGuildIdActivityRoute
   '/dashboard/$guildId/commands': typeof DashboardGuildIdCommandsRoute
+  '/dashboard/$guildId/reminders': typeof DashboardGuildIdRemindersRoute
   '/dashboard/$guildId/responders': typeof DashboardGuildIdRespondersRoute
   '/dashboard/$guildId/schedules': typeof DashboardGuildIdSchedulesRoute
   '/dashboard/$guildId/welcome': typeof DashboardGuildIdWelcomeRoute
@@ -256,8 +293,11 @@ export interface FileRoutesById {
   '/api/guilds/$guildId/welcome': typeof ApiGuildsGuildIdWelcomeRoute
   '/api/guilds/$guildId/': typeof ApiGuildsGuildIdIndexRoute
   '/api/guilds/$guildId/commands/$id': typeof ApiGuildsGuildIdCommandsIdRoute
+  '/api/guilds/$guildId/reminders/$id': typeof ApiGuildsGuildIdRemindersIdRoute
+  '/api/guilds/$guildId/reminders/settings': typeof ApiGuildsGuildIdRemindersSettingsRoute
   '/api/guilds/$guildId/responders/$id': typeof ApiGuildsGuildIdRespondersIdRoute
   '/api/guilds/$guildId/commands/': typeof ApiGuildsGuildIdCommandsIndexRoute
+  '/api/guilds/$guildId/reminders/': typeof ApiGuildsGuildIdRemindersIndexRoute
   '/api/guilds/$guildId/responders/': typeof ApiGuildsGuildIdRespondersIndexRoute
   '/api/guilds/$guildId/schedules/': typeof ApiGuildsGuildIdSchedulesIndexRoute
   '/api/guilds/$guildId/schedules/$id/send': typeof ApiGuildsGuildIdSchedulesIdSendRoute
@@ -275,6 +315,7 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/dashboard/$guildId/activity'
     | '/dashboard/$guildId/commands'
+    | '/dashboard/$guildId/reminders'
     | '/dashboard/$guildId/responders'
     | '/dashboard/$guildId/schedules'
     | '/dashboard/$guildId/welcome'
@@ -286,8 +327,11 @@ export interface FileRouteTypes {
     | '/api/guilds/$guildId/welcome'
     | '/api/guilds/$guildId/'
     | '/api/guilds/$guildId/commands/$id'
+    | '/api/guilds/$guildId/reminders/$id'
+    | '/api/guilds/$guildId/reminders/settings'
     | '/api/guilds/$guildId/responders/$id'
     | '/api/guilds/$guildId/commands/'
+    | '/api/guilds/$guildId/reminders/'
     | '/api/guilds/$guildId/responders/'
     | '/api/guilds/$guildId/schedules/'
     | '/api/guilds/$guildId/schedules/$id/send'
@@ -301,6 +345,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/dashboard/$guildId/activity'
     | '/dashboard/$guildId/commands'
+    | '/dashboard/$guildId/reminders'
     | '/dashboard/$guildId/responders'
     | '/dashboard/$guildId/schedules'
     | '/dashboard/$guildId/welcome'
@@ -312,8 +357,11 @@ export interface FileRouteTypes {
     | '/api/guilds/$guildId/welcome'
     | '/api/guilds/$guildId'
     | '/api/guilds/$guildId/commands/$id'
+    | '/api/guilds/$guildId/reminders/$id'
+    | '/api/guilds/$guildId/reminders/settings'
     | '/api/guilds/$guildId/responders/$id'
     | '/api/guilds/$guildId/commands'
+    | '/api/guilds/$guildId/reminders'
     | '/api/guilds/$guildId/responders'
     | '/api/guilds/$guildId/schedules'
     | '/api/guilds/$guildId/schedules/$id/send'
@@ -329,6 +377,7 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/dashboard/$guildId/activity'
     | '/dashboard/$guildId/commands'
+    | '/dashboard/$guildId/reminders'
     | '/dashboard/$guildId/responders'
     | '/dashboard/$guildId/schedules'
     | '/dashboard/$guildId/welcome'
@@ -340,8 +389,11 @@ export interface FileRouteTypes {
     | '/api/guilds/$guildId/welcome'
     | '/api/guilds/$guildId/'
     | '/api/guilds/$guildId/commands/$id'
+    | '/api/guilds/$guildId/reminders/$id'
+    | '/api/guilds/$guildId/reminders/settings'
     | '/api/guilds/$guildId/responders/$id'
     | '/api/guilds/$guildId/commands/'
+    | '/api/guilds/$guildId/reminders/'
     | '/api/guilds/$guildId/responders/'
     | '/api/guilds/$guildId/schedules/'
     | '/api/guilds/$guildId/schedules/$id/send'
@@ -433,6 +485,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardGuildIdCommandsRouteImport
       parentRoute: typeof DashboardGuildIdRouteRoute
     }
+    '/dashboard/$guildId/reminders': {
+      id: '/dashboard/$guildId/reminders'
+      path: '/reminders'
+      fullPath: '/dashboard/$guildId/reminders'
+      preLoaderRoute: typeof DashboardGuildIdRemindersRouteImport
+      parentRoute: typeof DashboardGuildIdRouteRoute
+    }
     '/dashboard/$guildId/responders': {
       id: '/dashboard/$guildId/responders'
       path: '/responders'
@@ -503,6 +562,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGuildsGuildIdCommandsIdRouteImport
       parentRoute: typeof ApiRouteRoute
     }
+    '/api/guilds/$guildId/reminders/': {
+      id: '/api/guilds/$guildId/reminders/'
+      path: '/guilds/$guildId/reminders'
+      fullPath: '/api/guilds/$guildId/reminders/'
+      preLoaderRoute: typeof ApiGuildsGuildIdRemindersIndexRouteImport
+      parentRoute: typeof ApiRouteRoute
+    }
+    '/api/guilds/$guildId/reminders/$id': {
+      id: '/api/guilds/$guildId/reminders/$id'
+      path: '/guilds/$guildId/reminders/$id'
+      fullPath: '/api/guilds/$guildId/reminders/$id'
+      preLoaderRoute: typeof ApiGuildsGuildIdRemindersIdRouteImport
+      parentRoute: typeof ApiRouteRoute
+    }
+    '/api/guilds/$guildId/reminders/settings': {
+      id: '/api/guilds/$guildId/reminders/settings'
+      path: '/guilds/$guildId/reminders/settings'
+      fullPath: '/api/guilds/$guildId/reminders/settings'
+      preLoaderRoute: typeof ApiGuildsGuildIdRemindersSettingsRouteImport
+      parentRoute: typeof ApiRouteRoute
+    }
     '/api/guilds/$guildId/responders/': {
       id: '/api/guilds/$guildId/responders/'
       path: '/guilds/$guildId/responders'
@@ -551,8 +631,11 @@ interface ApiRouteRouteChildren {
   ApiGuildsGuildIdWelcomeRoute: typeof ApiGuildsGuildIdWelcomeRoute
   ApiGuildsGuildIdIndexRoute: typeof ApiGuildsGuildIdIndexRoute
   ApiGuildsGuildIdCommandsIdRoute: typeof ApiGuildsGuildIdCommandsIdRoute
+  ApiGuildsGuildIdRemindersIdRoute: typeof ApiGuildsGuildIdRemindersIdRoute
+  ApiGuildsGuildIdRemindersSettingsRoute: typeof ApiGuildsGuildIdRemindersSettingsRoute
   ApiGuildsGuildIdRespondersIdRoute: typeof ApiGuildsGuildIdRespondersIdRoute
   ApiGuildsGuildIdCommandsIndexRoute: typeof ApiGuildsGuildIdCommandsIndexRoute
+  ApiGuildsGuildIdRemindersIndexRoute: typeof ApiGuildsGuildIdRemindersIndexRoute
   ApiGuildsGuildIdRespondersIndexRoute: typeof ApiGuildsGuildIdRespondersIndexRoute
   ApiGuildsGuildIdSchedulesIndexRoute: typeof ApiGuildsGuildIdSchedulesIndexRoute
   ApiGuildsGuildIdSchedulesIdSendRoute: typeof ApiGuildsGuildIdSchedulesIdSendRoute
@@ -569,8 +652,12 @@ const ApiRouteRouteChildren: ApiRouteRouteChildren = {
   ApiGuildsGuildIdWelcomeRoute: ApiGuildsGuildIdWelcomeRoute,
   ApiGuildsGuildIdIndexRoute: ApiGuildsGuildIdIndexRoute,
   ApiGuildsGuildIdCommandsIdRoute: ApiGuildsGuildIdCommandsIdRoute,
+  ApiGuildsGuildIdRemindersIdRoute: ApiGuildsGuildIdRemindersIdRoute,
+  ApiGuildsGuildIdRemindersSettingsRoute:
+    ApiGuildsGuildIdRemindersSettingsRoute,
   ApiGuildsGuildIdRespondersIdRoute: ApiGuildsGuildIdRespondersIdRoute,
   ApiGuildsGuildIdCommandsIndexRoute: ApiGuildsGuildIdCommandsIndexRoute,
+  ApiGuildsGuildIdRemindersIndexRoute: ApiGuildsGuildIdRemindersIndexRoute,
   ApiGuildsGuildIdRespondersIndexRoute: ApiGuildsGuildIdRespondersIndexRoute,
   ApiGuildsGuildIdSchedulesIndexRoute: ApiGuildsGuildIdSchedulesIndexRoute,
   ApiGuildsGuildIdSchedulesIdSendRoute: ApiGuildsGuildIdSchedulesIdSendRoute,
@@ -584,6 +671,7 @@ const ApiRouteRouteWithChildren = ApiRouteRoute._addFileChildren(
 interface DashboardGuildIdRouteRouteChildren {
   DashboardGuildIdActivityRoute: typeof DashboardGuildIdActivityRoute
   DashboardGuildIdCommandsRoute: typeof DashboardGuildIdCommandsRoute
+  DashboardGuildIdRemindersRoute: typeof DashboardGuildIdRemindersRoute
   DashboardGuildIdRespondersRoute: typeof DashboardGuildIdRespondersRoute
   DashboardGuildIdSchedulesRoute: typeof DashboardGuildIdSchedulesRoute
   DashboardGuildIdWelcomeRoute: typeof DashboardGuildIdWelcomeRoute
@@ -593,6 +681,7 @@ interface DashboardGuildIdRouteRouteChildren {
 const DashboardGuildIdRouteRouteChildren: DashboardGuildIdRouteRouteChildren = {
   DashboardGuildIdActivityRoute: DashboardGuildIdActivityRoute,
   DashboardGuildIdCommandsRoute: DashboardGuildIdCommandsRoute,
+  DashboardGuildIdRemindersRoute: DashboardGuildIdRemindersRoute,
   DashboardGuildIdRespondersRoute: DashboardGuildIdRespondersRoute,
   DashboardGuildIdSchedulesRoute: DashboardGuildIdSchedulesRoute,
   DashboardGuildIdWelcomeRoute: DashboardGuildIdWelcomeRoute,

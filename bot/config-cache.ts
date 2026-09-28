@@ -6,6 +6,8 @@ import {
   autoResponders,
   type CustomCommand,
   customCommands,
+  type ReminderSettings,
+  reminderSettings,
   type WelcomeSettings,
   welcomeSettings,
 } from '#/db/schema.ts'
@@ -23,6 +25,8 @@ type GuildConfig = {
   commands: Map<string, CustomCommand>
   responders: CompiledResponder[]
   welcome?: WelcomeSettings
+  /** Undefined until an admin saves settings; the defaults apply then. */
+  reminders?: ReminderSettings
 }
 
 const cache = new Map<string, GuildConfig>()
@@ -79,13 +83,21 @@ export async function reloadGuild(guildId: string, table?: ConfigTable) {
       .where(eq(welcomeSettings.guildId, guildId))
     config.welcome = row
   }
+  if (!table || table === 'reminders') {
+    const [row] = await db
+      .select()
+      .from(reminderSettings)
+      .where(eq(reminderSettings.guildId, guildId))
+    config.reminders = row
+  }
 }
 
 export async function reloadAll() {
-  const [commands, responders, welcome] = await Promise.all([
+  const [commands, responders, welcome, reminderRows] = await Promise.all([
     db.select().from(customCommands),
     db.select().from(autoResponders).orderBy(autoResponders.createdAt),
     db.select().from(welcomeSettings),
+    db.select().from(reminderSettings),
   ])
   cache.clear()
   for (const [guildId, rows] of groupBy(commands)) {
@@ -96,5 +108,18 @@ export async function reloadAll() {
   }
   for (const row of welcome) {
     getGuildConfig(row.guildId).welcome = row
+  }
+  for (const row of reminderRows) {
+    getGuildConfig(row.guildId).reminders = row
+  }
+}
+
+/** Reminder settings with defaults filled in for servers that never saved any. */
+export function reminderSettingsFor(guildId: string) {
+  const saved = getGuildConfig(guildId).reminders
+  return {
+    enabled: saved?.enabled ?? true,
+    defaultTimezone: saved?.defaultTimezone ?? 'UTC',
+    maxPerMember: saved?.maxPerMember ?? 10,
   }
 }

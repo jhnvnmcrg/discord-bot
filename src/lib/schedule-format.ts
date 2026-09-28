@@ -1,6 +1,6 @@
 import cronstrue from 'cronstrue'
 
-import type { Schedule } from './schedule'
+import { currentZoneName, type Schedule } from './schedule'
 
 // Human-readable schedule text for the dashboard (browser only).
 
@@ -102,11 +102,6 @@ export function formatRelative(date: Date | string, now = Date.now()) {
   return seconds >= 0 ? 'in under a minute' : 'just now'
 }
 
-export function timezones() {
-  const zones = Intl.supportedValuesOf('timeZone')
-  return zones.includes('UTC') ? zones : ['UTC', ...zones]
-}
-
 export function browserTimezone() {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  return currentZoneName(Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC')
 }

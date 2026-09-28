@@ -35,6 +35,35 @@ export function isValidTimezone(timezone: string) {
   }
 }
 
+// Intl lists some zones by their old names; people search for the current ones.
+const CURRENT_ZONE_NAMES: Record<string, string> = {
+  'Asia/Calcutta': 'Asia/Kolkata',
+  'Europe/Kiev': 'Europe/Kyiv',
+  'Asia/Saigon': 'Asia/Ho_Chi_Minh',
+  'Asia/Katmandu': 'Asia/Kathmandu',
+  'Asia/Rangoon': 'Asia/Yangon',
+  'America/Godthab': 'America/Nuuk',
+  'Atlantic/Faeroe': 'Atlantic/Faroe',
+  'Pacific/Enderbury': 'Pacific/Kanton',
+  'Pacific/Truk': 'Pacific/Chuuk',
+  'Pacific/Ponape': 'Pacific/Pohnpei',
+}
+
+/** The zone's current IANA name, e.g. Asia/Calcutta → Asia/Kolkata. */
+export function currentZoneName(timezone: string) {
+  const renamed = CURRENT_ZONE_NAMES[timezone]
+  return renamed && isValidTimezone(renamed) ? renamed : timezone
+}
+
+/** Every time zone, by current name, UTC first. */
+export function listTimezones() {
+  const zones = new Set(
+    Intl.supportedValuesOf('timeZone').map(currentZoneName),
+  )
+  zones.delete('UTC')
+  return ['UTC', ...[...zones].sort()]
+}
+
 function hoursMinutes(time: string) {
   const [hours, minutes] = time.split(':').map(Number)
   return { hours, minutes }

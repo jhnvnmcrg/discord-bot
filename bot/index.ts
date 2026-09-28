@@ -50,7 +50,10 @@ const listener = startConfigListener({
     reloadGuild(guildId, table)
       .then(() => {
         const guild = client.guilds.cache.get(guildId)
-        if (table === 'commands' && guild) scheduleCommandSync(guild)
+        // Reminder settings decide whether /remind is registered.
+        if ((table === 'commands' || table === 'reminders') && guild) {
+          scheduleCommandSync(guild)
+        }
       })
       .catch((error) => console.error(`Reload of ${table} failed`, error))
   },

@@ -30,6 +30,7 @@ function SetupRow({
     | '/dashboard/$guildId/commands'
     | '/dashboard/$guildId/responders'
     | '/dashboard/$guildId/schedules'
+    | '/dashboard/$guildId/reminders'
     | '/dashboard/$guildId/welcome'
   label: string
   status: string
@@ -93,6 +94,16 @@ function GuildOverview() {
                 label="Scheduled messages"
                 status={plural(guild.scheduleCount, 'message')}
                 on={guild.scheduleCount > 0}
+              />
+              <SetupRow
+                to="/dashboard/$guildId/reminders"
+                label="Reminders"
+                status={
+                  guild.remindersEnabled
+                    ? plural(guild.reminderCount, 'upcoming reminder')
+                    : 'Off'
+                }
+                on={guild.remindersEnabled}
               />
               <SetupRow
                 to="/dashboard/$guildId/welcome"
