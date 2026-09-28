@@ -35,6 +35,7 @@ const FILTERS = [
   { value: 'autoresponse', label: 'Auto-replies' },
   { value: 'member_join', label: 'Joins' },
   { value: 'member_leave', label: 'Leaves' },
+  { value: 'scheduled', label: 'Scheduled' },
   { value: 'error', label: 'Errors' },
 ] as const
 
@@ -43,6 +44,7 @@ const EVENT_LABELS: Record<ActivityType, string> = {
   autoresponse: 'Auto-reply',
   member_join: 'Joined',
   member_leave: 'Left',
+  scheduled: 'Scheduled',
   error: 'Error',
 }
 
@@ -68,6 +70,11 @@ function describe(entry: ActivityDto) {
       return `/${entry.name}`
     case 'autoresponse':
       return typeof meta.trigger === 'string' ? `Matched "${meta.trigger}"` : 'Replied'
+    case 'scheduled':
+      if (meta.status === 'missed') {
+        return `Skipped "${entry.name}": the bot was offline when it was due`
+      }
+      return meta.manual ? `Sent "${entry.name}" (Send now)` : `Sent "${entry.name}"`
     case 'error':
       return typeof meta.message === 'string' ? meta.message : (entry.name ?? 'Error')
     default:

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useMatchRoute, useParams } from '@tanstack/react-router'
 import {
   ActivityIcon,
+  CalendarClockIcon,
   ChevronsUpDownIcon,
   HandIcon,
   LayoutDashboardIcon,
@@ -144,6 +145,7 @@ function GuildNav({ guild }: { guild: GuildSummary }) {
     { to: '/dashboard/$guildId', label: 'Overview', icon: LayoutDashboardIcon, exact: true },
     { to: '/dashboard/$guildId/commands', label: 'Slash commands', icon: SlashSquareIcon, badge: guild.commandCount },
     { to: '/dashboard/$guildId/responders', label: 'Auto-responders', icon: MessageSquareReplyIcon, badge: guild.responderCount },
+    { to: '/dashboard/$guildId/schedules', label: 'Scheduled messages', icon: CalendarClockIcon, badge: guild.scheduleCount },
     { to: '/dashboard/$guildId/welcome', label: 'Welcome', icon: HandIcon },
     { to: '/dashboard/$guildId/activity', label: 'Activity', icon: ActivityIcon },
   ] as const

@@ -16,10 +16,16 @@ import type {
   GuildSummary,
   ResponderDto,
   RoleOption,
+  ScheduleDto,
   StatsResponse,
   WelcomeDto,
 } from './api-types'
-import type { CommandInput, ResponderInput, WelcomeInput } from './schemas'
+import type {
+  CommandInput,
+  ResponderInput,
+  ScheduledMessageInput,
+  WelcomeInput,
+} from './schemas'
 
 // Browser-side client for the /api REST routes. The dashboard renders with
 // ssr: false, so these relative fetches only ever run in the browser.
@@ -65,6 +71,7 @@ export const keys = {
   commands: (guildId: string) => ['guilds', guildId, 'commands'] as const,
   responders: (guildId: string) => ['guilds', guildId, 'responders'] as const,
   welcome: (guildId: string) => ['guilds', guildId, 'welcome'] as const,
+  schedules: (guildId: string) => ['guilds', guildId, 'schedules'] as const,
   activity: (guildId: string) => ['guilds', guildId, 'activity'] as const,
   stats: ['stats'] as const,
 }
@@ -107,6 +114,13 @@ export const queries = {
     queryOptions({
       queryKey: keys.responders(guildId),
       queryFn: () => request<ResponderDto[]>(`/guilds/${guildId}/responders`),
+    }),
+  schedules: (guildId: string) =>
+    queryOptions({
+      queryKey: keys.schedules(guildId),
+      queryFn: () => request<ScheduleDto[]>(`/guilds/${guildId}/schedules`),
+      // Next/last run times move as the bot sends; keep the list fresh.
+      refetchInterval: 30_000,
     }),
   welcome: (guildId: string) =>
     queryOptions({
@@ -199,6 +213,40 @@ export function useDeleteResponder(guildId: string) {
     (id: number) =>
       request<void>(`/guilds/${guildId}/responders/${id}`, send('DELETE')),
     [keys.responders(guildId), keys.guilds],
+  )
+}
+
+export function useSaveSchedule(guildId: string) {
+  return useInvalidatingMutation(
+    ({ id, input }: { id?: number; input: ScheduledMessageInput }) =>
+      id
+        ? request<ScheduleDto>(`/guilds/${guildId}/schedules/${id}`, send('PATCH', input))
+        : request<ScheduleDto>(`/guilds/${guildId}/schedules`, send('POST', input)),
+    [keys.schedules(guildId), keys.guilds],
+  )
+}
+
+export function useUpdateSchedule(guildId: string) {
+  return useInvalidatingMutation(
+    ({ id, patch }: { id: number; patch: Partial<ScheduledMessageInput> }) =>
+      request<ScheduleDto>(`/guilds/${guildId}/schedules/${id}`, send('PATCH', patch)),
+    [keys.schedules(guildId)],
+  )
+}
+
+export function useDeleteSchedule(guildId: string) {
+  return useInvalidatingMutation(
+    (id: number) =>
+      request<void>(`/guilds/${guildId}/schedules/${id}`, send('DELETE')),
+    [keys.schedules(guildId), keys.guilds],
+  )
+}
+
+export function useSendScheduleNow(guildId: string) {
+  return useInvalidatingMutation(
+    (id: number) =>
+      request<ScheduleDto>(`/guilds/${guildId}/schedules/${id}/send`, send('POST')),
+    [keys.schedules(guildId), keys.activity(guildId), keys.stats],
   )
 }
 

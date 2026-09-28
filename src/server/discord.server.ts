@@ -12,19 +12,45 @@ export class DiscordApiError extends Error {
   }
 }
 
-async function discordGet<T>(path: string): Promise<T> {
+async function discordRequest<T>(
+  method: 'GET' | 'POST',
+  path: string,
+  body?: unknown,
+): Promise<T> {
   const token = process.env.DISCORD_TOKEN
   if (!token) throw new DiscordApiError(500, 'DISCORD_TOKEN is not set.')
   const response = await fetch(`${API}${path}`, {
-    headers: { Authorization: `Bot ${token}` },
+    method,
+    headers: {
+      Authorization: `Bot ${token}`,
+      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
   })
   if (!response.ok) {
+    // Discord explains failures like "Missing Permissions" in `message`.
+    const detail = (await response.json().catch(() => undefined)) as
+      | { message?: string }
+      | undefined
     throw new DiscordApiError(
       response.status,
-      `Discord returned ${response.status} for ${path}.`,
+      detail?.message
+        ? `Discord said: ${detail.message}`
+        : `Discord returned ${response.status} for ${path}.`,
     )
   }
   return response.json() as Promise<T>
+}
+
+const discordGet = <T>(path: string) => discordRequest<T>('GET', path)
+
+export const discordPost = <T>(path: string, body: unknown) =>
+  discordRequest<T>('POST', path, body)
+
+export function getChannel(channelId: string) {
+  return discordGet<{ id: string; guild_id?: string; type: number }>(
+    `/channels/${channelId}`,
+  )
 }
 
 type RawChannel = {
