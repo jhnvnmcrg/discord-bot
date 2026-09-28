@@ -1,18 +1,15 @@
+import { TanStackDevtools } from '@tanstack/react-devtools'
+import type { QueryClient } from '@tanstack/react-query'
 import {
+  createRootRouteWithContext,
   HeadContent,
   Scripts,
-  createRootRouteWithContext,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { TanStackDevtools } from '@tanstack/react-devtools'
-
+import { Toaster } from '#/components/ui/sonner'
 import ClerkProvider from '../integrations/clerk/provider'
-
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
-
 import appCss from '../styles.css?url'
-
-import type { QueryClient } from '@tanstack/react-query'
 
 interface MyRouterContext {
   queryClient: QueryClient
@@ -29,7 +26,11 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Start Starter',
+        name: 'color-scheme',
+        content: 'dark',
+      },
+      {
+        title: 'Bot Dashboard',
       },
     ],
     links: [
@@ -44,13 +45,15 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    // Dark-only theme: the class lets shadcn's `dark:` variants apply.
+    <html lang="en" className="dark">
       <head>
         <HeadContent />
       </head>
       <body>
         <ClerkProvider>
           {children}
+          <Toaster position="bottom-right" />
           <TanStackDevtools
             config={{
               position: 'bottom-right',

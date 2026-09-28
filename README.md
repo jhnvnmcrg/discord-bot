@@ -1,318 +1,113 @@
-Welcome to your new TanStack Start app!
+# Discord bot + dashboard
 
-# Getting Started
+A Discord bot and the web dashboard that configures it. Admins manage, per server:
 
-To run this application:
+- **Slash commands**: reply with a message or an embed, optionally visible only to the sender.
+- **Auto-responders**: keyword or regex triggers with a per-channel cooldown.
+- **Welcome messages and auto-role** for new members.
+- **Activity**: a log of everything the bot did, with 7-day stats.
+
+Everything the dashboard does goes through a REST API (`/api/*`), which you can also call from scripts.
+
+```text
+Browser ──fetch──▶ /api/* (TanStack Start server routes) ──▶ Postgres (Neon)
+                        │  pg_notify('bot_config')             ▲
+                        ▼                                       │
+                   bot/ (discord.js) ◀── LISTEN ────────────────┘
+                   writes: guilds, bot_status heartbeat, activity_log
+```
+
+The web app and the bot are separate processes that share one database. When a setting is saved, the API sends a Postgres `NOTIFY`. The bot reloads that server's config and re-registers its slash commands within a few seconds. The bot also reloads everything every 5 minutes, in case a notification is missed.
+
+## Setup
+
+### 1. Discord application
+
+In the [Developer Portal](https://discord.com/developers/applications):
+
+1. **Bot** tab:
+   - Copy the token into `DISCORD_TOKEN`.
+   - Under *Privileged Gateway Intents*, turn on **Server Members Intent** and **Message Content Intent**. Without both, the bot's login fails with *Used disallowed intents* (close code 4014).
+2. **General Information**: copy the Application ID into `VITE_DISCORD_CLIENT_ID`. This is optional; once the bot has run, the dashboard uses the id the bot reports.
+
+### 2. Environment
+
+Copy `.env.example` to `.env` and fill it in:
+
+| Variable | Notes |
+| --- | --- |
+| `DATABASE_URL` | Neon Postgres. The pooled URL is fine. If unset, `npm run dev` creates a claimable database for you. |
+| `DATABASE_URL_DIRECT` | Optional. Used for migrations and the bot's LISTEN connection. Defaults to `DATABASE_URL` without `-pooler`. |
+| `VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` | From the [Clerk dashboard](https://dashboard.clerk.com). |
+| `ADMIN_USER_IDS` | Comma-separated Clerk user ids allowed to manage the bot. **Required.** When it's empty, nobody gets in, because Clerk sign-up is open by default. Sign in once and the dashboard shows the id to add. |
+| `DASHBOARD_API_KEY` | Optional. Lets scripts call the API with an `x-api-key` header. |
+| `DISCORD_TOKEN` | Used by the bot, and by the web app to list channels and roles. |
+
+### 3. Database
 
 ```bash
-npm install
-npm run dev
+npm run db:migrate          # apply migrations in ./drizzle
+npm run db:generate         # after changing src/db/schema.ts
 ```
 
-# Building For Production
-
-To build this application for production:
+### 4. Run
 
 ```bash
-npm run build
+npm run dev    # dashboard + API on http://localhost:3000
+npm run bot    # the bot, restarts on file changes
 ```
 
-## Styling
+Open the dashboard and use **Add to a server** to invite the bot. The invite asks for View Channels, Send Messages, Embed Links, Read Message History and Manage Roles.
 
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
+## REST API
 
-### Removing Tailwind CSS
+Every route needs either an admin Clerk session or an `x-api-key: $DASHBOARD_API_KEY` header. Browser writes without a key are CSRF-checked.
 
-If you prefer not to use Tailwind CSS:
+| Method | Path | |
+| --- | --- | --- |
+| GET | `/api/status` | Bot presence: online flag, ping, server count |
+| GET | `/api/guilds` | Servers the bot is in, with counts |
+| GET | `/api/guilds/:guildId` | One server |
+| GET | `/api/guilds/:guildId/channels` | Text and announcement channels (from Discord) |
+| GET | `/api/guilds/:guildId/roles` | Roles, with an `assignable` flag |
+| GET, POST | `/api/guilds/:guildId/commands` | List or create slash commands |
+| GET, PATCH, DELETE | `/api/guilds/:guildId/commands/:id` | PATCH takes any subset of fields |
+| GET, POST | `/api/guilds/:guildId/responders` | List or create auto-responders |
+| GET, PATCH, DELETE | `/api/guilds/:guildId/responders/:id` | |
+| GET, PUT | `/api/guilds/:guildId/welcome` | Welcome message and auto-role |
+| GET | `/api/guilds/:guildId/activity?type=&cursor=&limit=` | Newest first; pass `nextCursor` back as `cursor` |
+| GET | `/api/stats?guildId=&days=7` | Daily counts by event type, plus top commands |
 
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Remove `@tailwindcss/vite` and `tailwindcss` from `package.json`
-
-## Linting & Formatting
-
-This project uses [Biome](https://biomejs.dev/) for linting and formatting. The following scripts are available:
-
+Request bodies are validated with the zod schemas in `src/lib/schemas.ts`. Invalid input returns `400` with an `issues` array, and a duplicate command name returns `409`.
 
 ```bash
-npm run lint
-npm run format
-npm run check
+curl -X POST http://localhost:3000/api/guilds/$GUILD_ID/commands \
+  -H "x-api-key: $DASHBOARD_API_KEY" -H "Content-Type: application/json" \
+  -d '{"name":"rules","description":"Show the rules","responseType":"text",
+       "content":"Be kind, {user}.","embed":null,"ephemeral":false,"enabled":true}'
 ```
 
+Messages support the placeholders `{user}`, `{user.name}`, `{server}`, `{memberCount}` and `{channel}`.
 
-## Deploy to Vercel
+## Deploying
 
-1. Push this repo to GitHub, GitLab, or Bitbucket
-2. In Vercel, choose **Add New > Project** and import the repo
-3. Keep the detected TanStack Start framework settings
-4. Add production values from `.env.example` under **Settings > Environment Variables**
-5. Deploy
+- **Web app**: Vercel, as configured in `vercel.json`. Set every variable except the optional ones, including `DISCORD_TOKEN` (used for the channel and role pickers).
+- **Bot**: needs a long-running host with a persistent gateway connection, such as Railway, Fly.io or a VPS. It can't run on Vercel. Run `npm ci && npm run bot:start` with `DISCORD_TOKEN` and `DATABASE_URL` set.
 
-Vercel runs the build script and deploys Nitro's output as Vercel Functions and
-static assets. The included `vercel.json` makes framework detection explicit.
+## Good to know
 
-Variables prefixed with `VITE_` are included in the browser bundle. Keep secrets
-unprefixed so they remain server-only.
+- **Owned commands**: the bot owns its *server-level* slash commands and overwrites them to match the dashboard. Global commands are never touched, and the bot ignores commands it doesn't know.
+- **Auto-role hierarchy**: the bot can only give roles below its own highest role. The dashboard marks the others.
+- **Deleted channels and roles**: if a saved welcome channel or role is deleted in Discord, the dashboard asks you to pick a new one.
+- **Neon compute**: while the bot runs, its LISTEN connection and 30-second heartbeat keep the Neon compute awake, so it never scales to zero.
+- **Activity retention**: activity is kept for 30 days.
+- **Removed servers**: servers the bot leaves keep their settings, which come back if it's re-added.
 
+## Code map
 
-## Setting up Clerk
-
-1. Create an application in the [Clerk dashboard](https://dashboard.clerk.com).
-2. Copy its publishable and secret keys into `.env.local`:
-
-   ```bash
-   VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
-   CLERK_SECRET_KEY=sk_test_...
-   ```
-
-3. Start the app and visit `/demo/clerk`.
-
-### What's wired up
-
-- `clerkMiddleware()` authenticates each server request from `src/start.ts`.
-- `<ClerkProvider>` supplies auth state throughout the app.
-- `<SignInButton>` and `<UserButton>` in the header respond to the session.
-- `/demo/clerk` shows Clerk's prebuilt sign-in UI and signed-in user data.
-
-### Protecting a route
-
-Use `auth()` in a loader or server function when authorization must happen on the
-server:
-
-```tsx
-import { createFileRoute, redirect } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
-import { auth } from '@clerk/tanstack-react-start/server'
-
-const getAuth = createServerFn({ method: 'GET' }).handler(async () => {
-  const { userId } = await auth()
-  return { userId }
-})
-
-export const Route = createFileRoute('/dashboard')({
-  beforeLoad: async () => {
-    const { userId } = await getAuth()
-    if (!userId) throw redirect({ to: '/' })
-  },
-})
-```
-
-`<Show when="signed-in">` remains useful for presentation, but server-side checks
-are the security boundary. See Clerk's [TanStack Start docs](https://clerk.com/docs/tanstack-react-start/getting-started/quickstart).
-
-### Production checklist
-
-- Set both keys in the production environment; never expose `CLERK_SECRET_KEY`.
-- Use production keys from a dedicated production Clerk instance.
-- Configure the production domain and any social connections in the Clerk dashboard.
-
-
-# TanStack Chat Application
-
-Am example chat application built with TanStack Start, TanStack Store, and Claude AI.
-
-## .env Updates
-
-```env
-ANTHROPIC_API_KEY=your_anthropic_api_key
-```
-
-## ✨ Features
-
-### AI Capabilities
-- 🤖 Powered by Claude 3.5 Sonnet 
-- 📝 Rich markdown formatting with syntax highlighting
-- 🎯 Customizable system prompts for tailored AI behavior
-- 🔄 Real-time message updates and streaming responses (coming soon)
-
-### User Experience
-- 🎨 Modern UI with Tailwind CSS and Lucide icons
-- 🔍 Conversation management and history
-- 🔐 Secure API key management
-- 📋 Markdown rendering with code highlighting
-
-### Technical Features
-- 📦 Centralized state management with TanStack Store
-- 🔌 Extensible architecture for multiple AI providers
-- 🛠️ TypeScript for type safety
-
-## Architecture
-
-### Tech Stack
-- **Frontend Framework**: TanStack Start
-- **Routing**: TanStack Router
-- **State Management**: TanStack Store
-- **Styling**: Tailwind CSS
-- **AI Integration**: Anthropic's Claude API
-
-## Shadcn
-
-Add components using the latest version of [Shadcn](https://ui.shadcn.com/).
-
-```bash
-pnpm dlx shadcn@latest add button
-```
-
-
-## Setting up Neon
-
-When running the `dev` command, `vite-plugin-neon-new` will identify there is not a database setup. It will then create and seed a claimable database.
-
-It is the same process as [Neon Launchpad](https://neon.new).
-
-> [!IMPORTANT]  
-> Claimable databases expire in 72 hours.
-
-
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
-```
-
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
-```
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-## Server Functions
-
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-  
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-  
-  return <div>Server time: {time}</div>
-}
-```
-
-## API Routes
-
-You can create API routes by using the `server` property in your route definitions:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+- `bot/`: the discord.js process: event handlers, config cache, LISTEN client, heartbeat.
+- `src/db/schema.ts`: Drizzle schema. `drizzle/` holds the generated migrations.
+- `src/routes/api/`: the REST API. Auth is enforced for all of `/api` by `src/routes/api/route.ts`.
+- `src/routes/dashboard/`: the dashboard, client-rendered (`ssr: false`).
+- `src/lib/`: code shared by the bot and the web app, such as schemas, templates, matching and the API client.
+- `src/styles.css`: theme tokens, dark only.

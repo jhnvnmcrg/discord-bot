@@ -1,6 +1,8 @@
 import { config } from 'dotenv'
 import { defineConfig } from 'drizzle-kit'
 
+import { directDatabaseUrl } from './src/db/url.ts'
+
 config({ path: ['.env.local', '.env'] })
 
 export default defineConfig({
@@ -8,6 +10,6 @@ export default defineConfig({
   schema: './src/db/schema.ts',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL,
+    url: directDatabaseUrl(),
   },
 })
