@@ -15,6 +15,13 @@
       "when": 1790572991988,
       "tag": "0001_abnormal_jazinda",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790575313007,
+      "tag": "0002_lying_cobalt_man",
+      "breakpoints": true
     }
   ]
 }

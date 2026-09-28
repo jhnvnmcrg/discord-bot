@@ -9,6 +9,7 @@ import { buildMessagePayload } from '#/lib/message-payload.ts'
 
 import { getGuildConfig } from '../config-cache.ts'
 import { logActivity, logError } from '../log.ts'
+import { handleRemind, handleRemindAutocomplete } from '../reminders.ts'
 import { templateVars } from '../template-vars.ts'
 
 async function handleCommand(interaction: ChatInputCommandInteraction) {
@@ -52,9 +53,17 @@ async function handleCommand(interaction: ChatInputCommandInteraction) {
 
 export function registerInteractionEvents(client: Client) {
   client.on(Events.InteractionCreate, async (interaction) => {
+    if (interaction.isAutocomplete()) {
+      if (interaction.commandName !== 'remind') return
+      await handleRemindAutocomplete(interaction).catch((error) =>
+        console.error('Autocomplete failed', error),
+      )
+      return
+    }
     if (!interaction.isChatInputCommand()) return
     try {
-      await handleCommand(interaction)
+      if (interaction.commandName === 'remind') await handleRemind(interaction)
+      else await handleCommand(interaction)
     } catch (error) {
       await logError(interaction.guildId, 'command', error, {
         command: interaction.commandName,

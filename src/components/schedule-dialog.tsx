@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 
 import { DiscordMessage } from '#/components/discord-message'
 import { fieldErrors, PlaceholderPicker } from '#/components/placeholder-picker'
+import { TimezoneSelect } from '#/components/timezone-select'
 import { Button } from '#/components/ui/button'
 import {
   Dialog,
@@ -48,7 +49,6 @@ import {
   browserTimezone,
   describeCron,
   formatInZone,
-  timezones,
   WEEKDAYS,
 } from '#/lib/schedule-format'
 import {
@@ -198,7 +198,6 @@ function ScheduleForm({
   const { data: status } = useQuery(queries.status())
   const { data: guild } = useQuery(queries.guild(guildId))
   const channels = useQuery(queries.channels(guildId))
-  const zones = timezones()
   const original = schedule ? JSON.stringify([schedule.schedule, schedule.timezone]) : null
 
   const form = useForm({
@@ -243,7 +242,7 @@ function ScheduleForm({
             <Input
               id={field.name}
               type="time"
-              className="w-36"
+              className="max-w-36"
               value={field.state.value}
               onBlur={field.handleBlur}
               onChange={(e) => field.handleChange(e.target.value)}
@@ -349,7 +348,7 @@ function ScheduleForm({
                           <Input
                             id={field.name}
                             type="datetime-local"
-                            className="w-60"
+                            className="max-w-60"
                             value={field.state.value}
                             onBlur={field.handleBlur}
                             onChange={(e) => field.handleChange(e.target.value)}
@@ -411,7 +410,7 @@ function ScheduleForm({
                             value={field.state.value}
                             onValueChange={(value) => value && field.handleChange(value)}
                           >
-                            <SelectTrigger id={field.name} className="w-40">
+                            <SelectTrigger id={field.name} className="max-w-40">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -472,23 +471,11 @@ function ScheduleForm({
             {(field) => (
               <Field>
                 <FieldLabel htmlFor={field.name}>Time zone</FieldLabel>
-                <Select
+                <TimezoneSelect
+                  id={field.name}
                   value={field.state.value}
-                  onValueChange={(value) => value && field.handleChange(value)}
-                >
-                  <SelectTrigger id={field.name} className="w-full max-w-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {zones.map((zone) => (
-                        <SelectItem key={zone} value={zone}>
-                          {zone.replaceAll('_', ' ')}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                  onChange={field.handleChange}
+                />
                 <FieldDescription>
                   Times follow this zone, including daylight saving changes.
                 </FieldDescription>

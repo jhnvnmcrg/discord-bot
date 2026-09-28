@@ -15,12 +15,16 @@ export function ConfirmDelete({
   title,
   description,
   onConfirm,
+  confirmLabel = 'Delete',
+  cancelLabel = 'Cancel',
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
   description: string
   onConfirm: () => void
+  confirmLabel?: string
+  cancelLabel?: string
 }) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -30,9 +34,9 @@ export function ConfirmDelete({
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{cancelLabel}</AlertDialogCancel>
           <AlertDialogAction variant="destructive" onClick={onConfirm}>
-            Delete
+            {confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

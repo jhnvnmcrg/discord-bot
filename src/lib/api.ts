@@ -14,6 +14,8 @@ import type {
   ChannelOption,
   CommandDto,
   GuildSummary,
+  ReminderDto,
+  ReminderSettingsDto,
   ResponderDto,
   RoleOption,
   ScheduleDto,
@@ -22,6 +24,7 @@ import type {
 } from './api-types'
 import type {
   CommandInput,
+  ReminderSettingsInput,
   ResponderInput,
   ScheduledMessageInput,
   WelcomeInput,
@@ -72,6 +75,7 @@ export const keys = {
   responders: (guildId: string) => ['guilds', guildId, 'responders'] as const,
   welcome: (guildId: string) => ['guilds', guildId, 'welcome'] as const,
   schedules: (guildId: string) => ['guilds', guildId, 'schedules'] as const,
+  reminders: (guildId: string) => ['guilds', guildId, 'reminders'] as const,
   activity: (guildId: string) => ['guilds', guildId, 'activity'] as const,
   stats: ['stats'] as const,
 }
@@ -121,6 +125,18 @@ export const queries = {
       queryFn: () => request<ScheduleDto[]>(`/guilds/${guildId}/schedules`),
       // Next/last run times move as the bot sends; keep the list fresh.
       refetchInterval: 30_000,
+    }),
+  reminders: (guildId: string) =>
+    queryOptions({
+      queryKey: keys.reminders(guildId),
+      queryFn: () => request<ReminderDto[]>(`/guilds/${guildId}/reminders`),
+      refetchInterval: 30_000,
+    }),
+  reminderSettings: (guildId: string) =>
+    queryOptions({
+      queryKey: [...keys.reminders(guildId), 'settings'],
+      queryFn: () =>
+        request<ReminderSettingsDto>(`/guilds/${guildId}/reminders/settings`),
     }),
   welcome: (guildId: string) =>
     queryOptions({
@@ -247,6 +263,25 @@ export function useSendScheduleNow(guildId: string) {
     (id: number) =>
       request<ScheduleDto>(`/guilds/${guildId}/schedules/${id}/send`, send('POST')),
     [keys.schedules(guildId), keys.activity(guildId), keys.stats],
+  )
+}
+
+export function useSaveReminderSettings(guildId: string) {
+  return useInvalidatingMutation(
+    (input: ReminderSettingsInput) =>
+      request<ReminderSettingsDto>(
+        `/guilds/${guildId}/reminders/settings`,
+        send('PUT', input),
+      ),
+    [keys.reminders(guildId), keys.guilds],
+  )
+}
+
+export function useCancelReminder(guildId: string) {
+  return useInvalidatingMutation(
+    (id: number) =>
+      request<void>(`/guilds/${guildId}/reminders/${id}`, send('DELETE')),
+    [keys.reminders(guildId), keys.guilds],
   )
 }
 

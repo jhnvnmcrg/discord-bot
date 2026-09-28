@@ -4,8 +4,9 @@ import {
   type Guild,
 } from 'discord.js'
 
-import { getGuildConfig } from './config-cache.ts'
+import { getGuildConfig, reminderSettingsFor } from './config-cache.ts'
 import { logError } from './log.ts'
+import { remindCommand } from './reminders.ts'
 
 // Custom commands are registered per guild with a bulk overwrite, so Discord
 // always mirrors exactly the enabled rows. Syncs are debounced (saving several
@@ -17,7 +18,9 @@ const pending = new Map<string, NodeJS.Timeout>()
 const lastSynced = new Map<string, string>()
 
 function definitions(guildId: string): ApplicationCommandDataResolvable[] {
-  return [...getGuildConfig(guildId).commands.values()]
+  const custom: ApplicationCommandDataResolvable[] = [
+    ...getGuildConfig(guildId).commands.values(),
+  ]
     .filter((command) => command.enabled)
     .sort((a, b) => a.name.localeCompare(b.name))
     .map((command) => ({
@@ -25,6 +28,9 @@ function definitions(guildId: string): ApplicationCommandDataResolvable[] {
       name: command.name,
       description: command.description,
     }))
+  // Built-in commands, registered alongside the dashboard's custom ones.
+  if (reminderSettingsFor(guildId).enabled) custom.push(remindCommand)
+  return custom
 }
 
 export async function syncGuildCommands(guild: Guild, force = false) {

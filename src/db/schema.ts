@@ -110,6 +110,7 @@ export const activityType = pgEnum('activity_type', [
   'member_leave',
   'error',
   'scheduled',
+  'reminder',
 ])
 
 export const activityLog = pgTable(
@@ -166,6 +167,57 @@ export const scheduledMessages = pgTable(
   ],
 )
 
+export const reminderDelivery = pgEnum('reminder_delivery', ['channel', 'dm'])
+export const reminderStatus = pgEnum('reminder_status', [
+  'pending',
+  'sent',
+  'failed',
+])
+
+/** Personal reminders members set with /remind. */
+export const reminders = pgTable(
+  'reminders',
+  {
+    id: serial().primaryKey(),
+    guildId: text('guild_id')
+      .notNull()
+      .references(() => guilds.id, { onDelete: 'cascade' }),
+    userId: text('user_id').notNull(),
+    username: text().notNull(),
+    /** Where /remind was used; channel reminders are posted back here. */
+    channelId: text('channel_id').notNull(),
+    text: varchar({ length: 500 }).notNull(),
+    dueAt: timestamp('due_at', { withTimezone: true }).notNull(),
+    delivery: reminderDelivery().notNull().default('channel'),
+    status: reminderStatus().notNull().default('pending'),
+    sentAt: timestamp('sent_at', { withTimezone: true }),
+    lastError: text('last_error'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('reminders_due_idx').on(t.status, t.dueAt),
+    index('reminders_member_idx').on(t.guildId, t.userId),
+  ],
+)
+
+export const reminderSettings = pgTable('reminder_settings', {
+  guildId: text('guild_id')
+    .primaryKey()
+    .references(() => guilds.id, { onDelete: 'cascade' }),
+  enabled: boolean().notNull().default(true),
+  /** Used to read times like "tomorrow 9am" for members with no time zone set. */
+  defaultTimezone: text('default_timezone').notNull().default('UTC'),
+  maxPerMember: integer('max_per_member').notNull().default(10),
+  updatedAt: updatedAt(),
+})
+
+/** Set by members with /remind timezone; applies in every server. */
+export const memberTimezones = pgTable('member_timezones', {
+  userId: text('user_id').primaryKey(),
+  timezone: text().notNull(),
+  updatedAt: updatedAt(),
+})
+
 // Singleton row (id = 1) the bot upserts on every heartbeat.
 export const botStatus = pgTable('bot_status', {
   id: integer().primaryKey().default(1),
@@ -189,4 +241,6 @@ export type WelcomeSettings = typeof welcomeSettings.$inferSelect
 export type ActivityEntry = typeof activityLog.$inferSelect
 export type BotStatus = typeof botStatus.$inferSelect
 export type ScheduledMessage = typeof scheduledMessages.$inferSelect
+export type Reminder = typeof reminders.$inferSelect
+export type ReminderSettings = typeof reminderSettings.$inferSelect
 export type ActivityType = (typeof activityType.enumValues)[number]

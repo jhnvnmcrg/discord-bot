@@ -11,6 +11,7 @@ import {
 } from '#/lib/schedule.ts'
 
 import { logActivity, logError } from './log.ts'
+import { deliverDueReminders } from './reminders.ts'
 
 const BATCH_SIZE = 25
 
@@ -100,6 +101,8 @@ async function tick(client: Client<true>) {
   if (guildIds.length === 0) return
   const now = new Date()
 
+  await deliverDueReminders(client, guildIds, now)
+
   for (const { row, missed } of await claimDue(guildIds, now)) {
     const base = {
       guildId: row.guildId,
@@ -132,7 +135,7 @@ async function tick(client: Client<true>) {
   }
 }
 
-/** Sends due scheduled messages every SCHEDULER_TICK_MS. Returns a stop function. */
+/** Sends due reminders and scheduled messages every SCHEDULER_TICK_MS. Returns a stop function. */
 export function startScheduler(client: Client<true>) {
   let running = false
   const run = async () => {

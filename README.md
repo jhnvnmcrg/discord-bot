@@ -6,6 +6,7 @@ A Discord bot and the web dashboard that configures it. Admins manage, per serve
 - **Auto-responders**: keyword or regex triggers with a per-channel cooldown.
 - **Welcome messages and auto-role** for new members.
 - **Scheduled messages**: one-time, daily, weekly, monthly or a custom cron, in a time zone you pick.
+- **Reminders**: members set their own with `/remind`, delivered in the channel or by DM.
 - **Activity**: a log of everything the bot did, with 7-day stats.
 
 Everything the dashboard does goes through a REST API (`/api/*`), which you can also call from scripts.
@@ -79,6 +80,9 @@ Every route needs either an admin Clerk session or an `x-api-key: $DASHBOARD_API
 | GET, POST | `/api/guilds/:guildId/schedules` | List or create scheduled messages |
 | GET, PATCH, DELETE | `/api/guilds/:guildId/schedules/:id` | The next send time is recalculated on every save |
 | POST | `/api/guilds/:guildId/schedules/:id/send` | Send now, over Discord's API, without changing the schedule |
+| GET, PUT | `/api/guilds/:guildId/reminders/settings` | Turn `/remind` on or off, default time zone, per-member limit |
+| GET | `/api/guilds/:guildId/reminders` | Members' upcoming reminders |
+| DELETE | `/api/guilds/:guildId/reminders/:id` | Cancel a member's reminder |
 | GET | `/api/guilds/:guildId/activity?type=&cursor=&limit=` | Newest first; pass `nextCursor` back as `cursor` |
 | GET | `/api/stats?guildId=&days=7` | Daily counts by event type, plus top commands |
 
@@ -105,6 +109,27 @@ A scheduled message's `schedule` takes one of these forms. Times are wall-clock 
 
 For weekly schedules, `days` counts from 0 for Sunday. For monthly schedules, `day` is a number from 1 to 28, or `"last"`. Custom cron uses five fields and must run at least 5 minutes apart.
 
+## Reminders
+
+Members use `/remind`, which the bot registers in every server where reminders are on:
+
+| Command | |
+| --- | --- |
+| `/remind me when:<time> what:<text> [private:True]` | Accepts times like `in 2h`, `tomorrow 9am`, `friday 8pm` or `Oct 3 14:00`. With `private`, the reminder is sent by DM. |
+| `/remind list` | Your upcoming reminders in this server |
+| `/remind cancel reminder:<pick one>` | Cancel a reminder, with autocomplete |
+| `/remind timezone zone:<zone>` | Set your time zone, which applies in every server. With no `zone`, shows your current one. |
+
+How it behaves:
+
+- **Time zones**: a time like "9am" is read in the member's time zone if they set one, otherwise in the server's default from the dashboard. The confirmation uses a Discord timestamp, so everyone sees the time in their own zone.
+- **Delivery**: channel reminders ping only the member who set them.
+- **Late reminders**: unlike scheduled messages, a reminder the bot missed while offline is still sent, with a note that it's late.
+- **Deleted channels**: if the channel is gone, the reminder is sent by DM instead.
+- **Failures**: a DM that fails is logged as an error, usually because the member doesn't accept DMs from server members.
+- **Limits**: reminders can be set from 1 minute to 1 year ahead, with at most 500 characters and a per-member cap.
+- **Reserved name**: `remind` can't be used as a custom command name.
+
 ## Deploying
 
 - **Web app**: Vercel, as configured in `vercel.json`. Set every variable except the optional ones, including `DISCORD_TOKEN` (used for the channel and role pickers).
@@ -126,7 +151,7 @@ For weekly schedules, `days` counts from 0 for Sunday. For monthly schedules, `d
 
 ## Code map
 
-- `bot/`: the discord.js process: event handlers, config cache, LISTEN client, heartbeat and scheduler.
+- `bot/`: the discord.js process: event handlers, config cache, LISTEN client, heartbeat, scheduler and `/remind`.
 - `src/db/schema.ts`: Drizzle schema. `drizzle/` holds the generated migrations.
 - `src/routes/api/`: the REST API. Auth is enforced for all of `/api` by `src/routes/api/route.ts`.
 - `src/routes/dashboard/`: the dashboard, client-rendered (`ssr: false`).
