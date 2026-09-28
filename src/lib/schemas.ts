@@ -192,6 +192,12 @@ export const scheduledMessageFields = z.object({
     .min(1, 'Give it a name')
     .max(100, 'Keep it under 100 characters'),
   channelId: z.string().regex(/^\d{17,20}$/, 'Pick a channel'),
+  /** Optional member to ping each time it sends. */
+  mentionUserId: z
+    .string()
+    .regex(/^\d{17,20}$/, 'Pick a member')
+    .nullable()
+    .optional(),
   schedule: scheduleSchema,
   timezone: z.string().refine(isValidTimezone, 'Pick a time zone'),
   ...replyFields,

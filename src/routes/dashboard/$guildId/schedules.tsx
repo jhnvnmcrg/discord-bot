@@ -142,7 +142,7 @@ function SchedulesPage() {
     <>
       <PageHeader
         title="Scheduled messages"
-        description="Messages the bot posts on its own: once, or on a repeating schedule. They never ping anyone."
+        description="Messages the bot posts on its own: once, or on a repeating schedule. Each can ping one member you choose; nothing else pings."
         actions={
           <Button onClick={() => openEditor()}>
             <PlusIcon data-icon="inline-start" />
@@ -202,6 +202,11 @@ function SchedulesPage() {
                       <span className="w-full truncate text-sm text-muted-foreground">
                         {describeSchedule(schedule.schedule)}
                       </span>
+                      {schedule.mention ? (
+                        <span className="w-full truncate text-xs text-muted-foreground">
+                          Pings @{schedule.mention.displayName}
+                        </span>
+                      ) : null}
                     </button>
                   </TableCell>
                   <TableCell className="hidden text-muted-foreground lg:table-cell">

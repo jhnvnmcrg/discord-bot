@@ -3,7 +3,7 @@ import { and, asc, eq, inArray, lte } from 'drizzle-orm'
 
 import { db } from '#/db/index.ts'
 import { type ScheduledMessage, scheduledMessages } from '#/db/schema.ts'
-import { buildMessagePayload } from '#/lib/message-payload.ts'
+import { buildScheduledPayload } from '#/lib/message-payload.ts'
 import {
   computeNextRun,
   MISSED_AFTER_MS,
@@ -69,14 +69,23 @@ async function send(client: Client<true>, row: ScheduledMessage) {
   if (!guild || !channel?.isSendable()) {
     throw new Error('The channel is missing or the bot cannot post there.')
   }
+  // The chosen member is pinged only while they're still in the server.
+  const member = row.mention
+    ? await guild.members.fetch(row.mention.id).catch(() => null)
+    : null
+  const { payload, pingUserIds } = buildScheduledPayload(
+    row,
+    { server: guild.name, memberCount: String(guild.memberCount) },
+    member
+      ? { id: member.id, displayName: member.displayName, present: true }
+      : row.mention
+        ? { ...row.mention, present: false }
+        : undefined,
+  )
   await channel.send({
-    ...buildMessagePayload(row, {
-      server: guild.name,
-      memberCount: String(guild.memberCount),
-      channel: `<#${channel.id}>`,
-    }),
-    // Scheduled messages never ping anyone.
-    allowedMentions: { parse: [] },
+    ...payload,
+    // Nothing else ever pings: no @everyone, @here, roles or other users.
+    allowedMentions: { users: pingUserIds },
   })
 }
 

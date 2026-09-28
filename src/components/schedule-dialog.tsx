@@ -1,9 +1,11 @@
 import { useForm } from '@tanstack/react-form'
 import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { ChannelSelect } from '#/components/channel-select'
 import { DiscordMessage } from '#/components/discord-message'
+import { MemberPicker } from '#/components/member-picker'
 import { fieldErrors, PlaceholderPicker } from '#/components/placeholder-picker'
 import { TimezoneSelect } from '#/components/timezone-select'
 import { Button } from '#/components/ui/button'
@@ -37,7 +39,8 @@ import { Switch } from '#/components/ui/switch'
 import { Textarea } from '#/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { errorMessage, queries, useSaveSchedule } from '#/lib/api'
-import type { ScheduleDto } from '#/lib/api-types'
+import type { MemberOption, ScheduleDto } from '#/lib/api-types'
+import { mentionGoesFirst } from '#/lib/message-payload'
 import {
   computeNextRun,
   nextRuns,
@@ -55,6 +58,7 @@ import {
   scheduledMessageInput,
   scheduleSchema,
 } from '#/lib/schemas'
+import type { PlaceholderKey } from '#/lib/templates'
 
 const BLURPLE = '#5865f2'
 
@@ -73,7 +77,9 @@ const MONTH_DAYS = [
 
 // The form keeps every schedule kind's fields at once (so switching kinds
 // doesn't lose input) and converts to the API's tagged union on submit.
-type FormValues = Omit<ScheduledMessageInput, 'schedule' | 'embed'> & {
+type FormValues = Omit<ScheduledMessageInput, 'schedule' | 'embed' | 'mentionUserId'> & {
+  /** '' when nobody is mentioned. */
+  mentionUserId: string
   type: ScheduleType
   at: string
   time: string
@@ -103,8 +109,8 @@ function toSchedule(values: FormValues): Schedule {
 }
 
 function toInput(values: FormValues): ScheduledMessageInput {
-  const { type, at, time, days, day, expression, ...rest } = values
-  return { ...rest, schedule: toSchedule(values) }
+  const { type, at, time, days, day, expression, mentionUserId, ...rest } = values
+  return { ...rest, mentionUserId: mentionUserId || null, schedule: toSchedule(values) }
 }
 
 /** An hour from now, on the hour, as a datetime-local value. */
@@ -119,6 +125,7 @@ function toFormValues(schedule?: ScheduleDto): FormValues {
   return {
     name: schedule?.name ?? '',
     channelId: schedule?.channelId ?? '',
+    mentionUserId: schedule?.mention?.id ?? '',
     type: s?.type ?? 'weekly',
     at: s?.type === 'once' ? s.at : defaultAt(),
     time: s && 'time' in s ? s.time : '09:00',
@@ -155,6 +162,12 @@ function ScheduleForm({
   const { data: status } = useQuery(queries.status())
   const { data: guild } = useQuery(queries.guild(guildId))
   const channels = useQuery(queries.channels(guildId))
+  const [mention, setMention] = useState<MemberOption | undefined>(
+    schedule?.mention ?? undefined,
+  )
+  const placeholderKeys: PlaceholderKey[] = mention
+    ? ['user', 'user.name', 'server', 'memberCount', 'channel']
+    : ['server', 'memberCount', 'channel']
   const original = schedule ? JSON.stringify([schedule.schedule, schedule.timezone]) : null
 
   const form = useForm({
@@ -264,6 +277,35 @@ function ScheduleForm({
                       Couldn't load channels: {errorMessage(channels.error)}
                     </FieldDescription>
                   ) : null}
+                  <FieldError errors={errors} />
+                </Field>
+              )
+            }}
+          </form.Field>
+
+          <form.Field name="mentionUserId">
+            {(field) => {
+              const { invalid, errors } = fieldErrors(field.state.meta)
+              return (
+                <Field data-invalid={invalid || undefined}>
+                  <FieldLabel htmlFor="mention">
+                    Mention a member
+                    <span className="font-normal text-muted-foreground">(optional)</span>
+                  </FieldLabel>
+                  <MemberPicker
+                    id="mention"
+                    guildId={guildId}
+                    value={mention}
+                    onChange={(next) => {
+                      setMention(next)
+                      field.handleChange(next?.id ?? '')
+                    }}
+                    invalid={invalid}
+                  />
+                  <FieldDescription>
+                    They get a ping each time it sends. The mention goes at the
+                    start, or wherever you put <code>{'{user}'}</code> in a message.
+                  </FieldDescription>
                   <FieldError errors={errors} />
                 </Field>
               )
@@ -479,7 +521,7 @@ function ScheduleForm({
                           aria-invalid={invalid || undefined}
                         />
                         <PlaceholderPicker
-                          keys={['server', 'memberCount', 'channel']}
+                          keys={placeholderKeys}
                           onInsert={(token) => field.handleChange(field.state.value + token)}
                         />
                         <FieldError errors={errors} />
@@ -519,7 +561,7 @@ function ScheduleForm({
                           onChange={(e) => field.handleChange(e.target.value)}
                         />
                         <PlaceholderPicker
-                          keys={['server', 'memberCount', 'channel']}
+                          keys={placeholderKeys}
                           onInsert={(token) => field.handleChange(field.state.value + token)}
                         />
                       </Field>
@@ -578,6 +620,8 @@ function ScheduleForm({
                 ? nextRuns(schedule, values.timezone, 3)
                 : []
               const channelName = channels.data?.find((c) => c.id === values.channelId)?.name
+              // Mirror the bot: the mention goes first unless {user} places it.
+              const prefix = mention && mentionGoesFirst(values) ? '{user} ' : ''
               return (
                 <>
                   <div className="flex flex-col gap-2">
@@ -599,16 +643,24 @@ function ScheduleForm({
                     <DiscordMessage
                       author={status?.username ?? 'Your bot'}
                       avatarUrl={status?.avatar ?? undefined}
-                      content={values.responseType === 'text' ? values.content : undefined}
+                      content={
+                        values.responseType === 'text'
+                          ? `${prefix}${values.content}`
+                          : prefix.trim() || undefined
+                      }
                       embed={values.responseType === 'embed' ? values.embed : undefined}
                       vars={{
+                        user: `@${mention?.displayName ?? 'member'}`,
+                        'user.name': mention?.displayName ?? 'member',
                         server: guild?.name ?? 'your server',
                         memberCount: guild ? String(guild.memberCount) : '128',
                         channel: channelName ? `#${channelName}` : '#channel',
                       }}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Scheduled messages never ping anyone.
+                      {mention
+                        ? `Only ${mention.displayName} gets a ping. @everyone and other mentions show as text.`
+                        : 'Nobody gets a ping. @everyone and mentions show as text.'}
                     </p>
                   </div>
                 </>

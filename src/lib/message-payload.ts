@@ -59,3 +59,30 @@ export function withMention(
   const content = payload.content ? `${mention} ${payload.content}` : mention
   return { ...payload, content: content.slice(0, 2000) }
 }
+
+/**
+ * A scheduled message, ready to post. Nothing pings unless a member to
+ * mention is given and still in the server (`present`), and then only that
+ * member (`pingUserIds`). A member who left is named as plain text.
+ */
+export function buildScheduledPayload(
+  row: StoredReply & { channelId: string },
+  vars: { server: string; memberCount: string },
+  mention?: { id: string; displayName: string; present: boolean },
+) {
+  const pinging = mention?.present ? mention : undefined
+  const base = buildMessagePayload(row, {
+    ...vars,
+    channel: `<#${row.channelId}>`,
+    ...(mention
+      ? {
+          user: pinging ? `<@${mention.id}>` : `@${mention.displayName}`,
+          'user.name': mention.displayName,
+        }
+      : {}),
+  })
+  return {
+    payload: pinging ? withMention(base, row, pinging.id) : base,
+    pingUserIds: pinging ? [pinging.id] : [],
+  }
+}
