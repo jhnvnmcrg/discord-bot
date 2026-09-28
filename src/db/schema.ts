@@ -40,6 +40,13 @@ export const guilds = pgTable('guilds', {
 
 export const responseType = pgEnum('response_type', ['text', 'embed'])
 
+export type MentionSnapshot = {
+  id: string
+  username: string
+  displayName: string
+  avatarUrl: string
+}
+
 export type CommandEmbed = {
   title?: string
   description?: string
@@ -153,6 +160,8 @@ export const scheduledMessages = pgTable(
     responseType: responseType('response_type').notNull().default('text'),
     content: text().notNull().default(''),
     embed: jsonb().$type<CommandEmbed>(),
+    /** Member pinged by the message, as they were when it was saved. */
+    mention: jsonb().$type<MentionSnapshot>(),
     enabled: boolean().notNull().default(true),
     /** Null when nothing is due: disabled, or a one-time message already sent. */
     nextRunAt: timestamp('next_run_at', { withTimezone: true }),

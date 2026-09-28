@@ -4,6 +4,7 @@ import { and, eq } from 'drizzle-orm'
 import { db } from '#/db/index.ts'
 import { scheduledMessages } from '#/db/schema.ts'
 import { scheduledMessageFields, scheduledMessageInput } from '#/lib/schemas'
+import { DiscordApiError } from '#/server/discord.server'
 import {
   fail,
   invalid,
@@ -12,7 +13,11 @@ import {
   parseId,
   readJson,
 } from '#/server/http.server'
-import { isPastOneTime, planNextRun } from '#/server/scheduled.server'
+import {
+  isPastOneTime,
+  planNextRun,
+  resolveMention,
+} from '#/server/scheduled.server'
 
 const notFound = () => fail(404, 'That scheduled message does not exist.')
 
@@ -50,7 +55,11 @@ export const Route = createFileRoute('/api/guilds/$guildId/schedules/$id/')({
           .where(whereSchedule(params.guildId, id))
         if (!existing) return notFound()
 
-        const merged = scheduledMessageInput.safeParse({ ...existing, ...patch.data })
+        const merged = scheduledMessageInput.safeParse({
+          ...existing,
+          mentionUserId: existing.mention?.id ?? null,
+          ...patch.data,
+        })
         if (!merged.success) return invalid(merged.error)
 
         // A sent one-time message can still be edited or toggled; only a
@@ -62,9 +71,20 @@ export const Route = createFileRoute('/api/guilds/$guildId/schedules/$id/')({
           return fail(400, 'That time has already passed. Pick a time in the future.')
         }
 
+        const { mentionUserId, ...fields } = merged.data
+        let mention: Awaited<ReturnType<typeof resolveMention>>
+        try {
+          mention = await resolveMention(params.guildId, mentionUserId, existing.mention)
+        } catch (error) {
+          if (error instanceof DiscordApiError) {
+            return fail(error.status === 400 ? 400 : 502, error.message)
+          }
+          throw error
+        }
+
         const [updated] = await db
           .update(scheduledMessages)
-          .set({ ...merged.data, nextRunAt: planNextRun(merged.data) })
+          .set({ ...fields, mention, nextRunAt: planNextRun(merged.data) })
           .where(whereSchedule(params.guildId, id))
           .returning()
         return ok(updated)

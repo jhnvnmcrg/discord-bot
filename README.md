@@ -98,7 +98,7 @@ curl -X POST http://localhost:3000/api/guilds/$GUILD_ID/commands \
        "content":"Be kind, {user}.","embed":null,"ephemeral":false,"enabled":true}'
 ```
 
-Messages support the placeholders `{user}`, `{user.name}`, `{server}`, `{memberCount}` and `{channel}`. Scheduled messages have no triggering member, so they only support `{server}`, `{memberCount}` and `{channel}`.
+Messages support the placeholders `{user}`, `{user.name}`, `{server}`, `{memberCount}` and `{channel}`. Scheduled messages support `{server}`, `{memberCount}` and `{channel}`. When they mention a member, `{user}` and `{user.name}` work too.
 
 A scheduled message's `schedule` takes one of these forms. Times are wall-clock times in the message's `timezone`, an IANA name such as `Europe/London`:
 
@@ -111,6 +111,8 @@ A scheduled message's `schedule` takes one of these forms. Times are wall-clock 
 ```
 
 For weekly schedules, `days` counts from 0 for Sunday. For monthly schedules, `day` is a number from 1 to 28, or `"last"`. Custom cron uses five fields and must run at least 5 minutes apart.
+
+To ping a member each time the message sends, pass `"mentionUserId": "…"`. Pass `null` to stop pinging them. The member must be in the server when you save.
 
 ## Sending messages from the dashboard
 
@@ -167,7 +169,9 @@ How it behaves:
   - The bot checks for due messages every 15 seconds.
   - A run that's more than 2 minutes late, usually because the bot was offline, is skipped and logged as missed. Missed messages are never sent late.
   - Each run is claimed in a database transaction before it's sent, so a message can't go out twice, even with two bot processes running.
-- **Scheduled message pings**: scheduled messages never ping anyone, even if they contain `@everyone` or a role mention.
+- **Scheduled message pings**: only the member you choose to mention is pinged, and nothing else ever is, including `@everyone`, roles and other mentions.
+  - The mention goes where `{user}` is, otherwise at the start of the message.
+  - If the member has left the server, the message still sends, naming them as plain text.
 
 ## Code map
 

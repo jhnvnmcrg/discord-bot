@@ -4,15 +4,21 @@ import { db } from '#/db/index.ts'
 import {
   activityLog,
   type Guild,
+  type MentionSnapshot,
   type ScheduledMessage,
   scheduledMessages,
 } from '#/db/schema.ts'
 import { MESSAGE_CHANNEL_TYPES } from '#/lib/discord.ts'
-import { buildMessagePayload } from '#/lib/message-payload.ts'
+import { buildScheduledPayload } from '#/lib/message-payload.ts'
 import { computeNextRun } from '#/lib/schedule.ts'
 import type { ScheduledMessageInput } from '#/lib/schemas.ts'
 
-import { DiscordApiError, discordPost, getChannel } from './discord.server'
+import {
+  DiscordApiError,
+  discordPost,
+  getChannel,
+  getMember,
+} from './discord.server'
 
 export const MAX_SCHEDULES_PER_GUILD = 50
 
@@ -30,6 +36,22 @@ export function isPastOneTime(input: ScheduledMessageInput, now = new Date()) {
 }
 
 /**
+ * The member a scheduled message will ping, checked against the server.
+ * An unchanged mention is kept as saved, without asking Discord again.
+ */
+export async function resolveMention(
+  guildId: string,
+  mentionUserId: string | null | undefined,
+  saved?: MentionSnapshot | null,
+): Promise<MentionSnapshot | null> {
+  if (!mentionUserId) return null
+  if (saved?.id === mentionUserId) return saved
+  const member = await getMember(guildId, mentionUserId)
+  if (!member) throw new DiscordApiError(400, 'The member to mention is not in this server.')
+  return member
+}
+
+/**
  * Posts a scheduled message right away over Discord's REST API (so it works
  * while the bot is offline) and records the result like a scheduled run would.
  * Does not change when the message next runs.
@@ -43,13 +65,20 @@ export async function sendScheduledNow(row: ScheduledMessage, guild: Guild) {
     if (channel.guild_id !== guild.id || !types.includes(channel.type)) {
       throw new DiscordApiError(400, 'That channel is not a text channel in this server.')
     }
+    // Ping the member only if they're still in the server.
+    const mentioned = row.mention ? await getMember(guild.id, row.mention.id) : undefined
+    const { payload, pingUserIds } = buildScheduledPayload(
+      row,
+      { server: guild.name, memberCount: String(guild.memberCount) },
+      mentioned
+        ? { ...mentioned, present: true }
+        : row.mention
+          ? { ...row.mention, present: false }
+          : undefined,
+    )
     await discordPost(`/channels/${row.channelId}/messages`, {
-      ...buildMessagePayload(row, {
-        server: guild.name,
-        memberCount: String(guild.memberCount),
-        channel: `<#${row.channelId}>`,
-      }),
-      allowed_mentions: { parse: [] },
+      ...payload,
+      allowed_mentions: { users: pingUserIds },
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
