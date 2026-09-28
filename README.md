@@ -7,6 +7,7 @@ A Discord bot and the web dashboard that configures it. Admins manage, per serve
 - **Welcome messages and auto-role** for new members.
 - **Scheduled messages**: one-time, daily, weekly, monthly or a custom cron, in a time zone you pick.
 - **Reminders**: members set their own with `/remind`, delivered in the channel or by DM.
+- **Send a message**: post as the bot in a channel, or DM a member, straight from the dashboard.
 - **Activity**: a log of everything the bot did, with 7-day stats.
 
 Everything the dashboard does goes through a REST API (`/api/*`), which you can also call from scripts.
@@ -80,6 +81,8 @@ Every route needs either an admin Clerk session or an `x-api-key: $DASHBOARD_API
 | GET, POST | `/api/guilds/:guildId/schedules` | List or create scheduled messages |
 | GET, PATCH, DELETE | `/api/guilds/:guildId/schedules/:id` | The next send time is recalculated on every save |
 | POST | `/api/guilds/:guildId/schedules/:id/send` | Send now, over Discord's API, without changing the schedule |
+| POST | `/api/guilds/:guildId/messages` | Send a message now, to a channel or a member's DMs (see below) |
+| GET | `/api/guilds/:guildId/members?query=` | Search members whose username or nickname starts with `query` (bots are excluded) |
 | GET, PUT | `/api/guilds/:guildId/reminders/settings` | Turn `/remind` on or off, default time zone, per-member limit |
 | GET | `/api/guilds/:guildId/reminders` | Members' upcoming reminders |
 | DELETE | `/api/guilds/:guildId/reminders/:id` | Cancel a member's reminder |
@@ -108,6 +111,20 @@ A scheduled message's `schedule` takes one of these forms. Times are wall-clock 
 ```
 
 For weekly schedules, `days` counts from 0 for Sunday. For monthly schedules, `day` is a number from 1 to 28, or `"last"`. Custom cron uses five fields and must run at least 5 minutes apart.
+
+## Sending messages from the dashboard
+
+**Send a message** posts right away as the bot, through Discord's API, so it works even while the bot process is offline. The body is:
+
+```text
+{ "target": { "type": "channel", "channelId": "…" } | { "type": "dm", "userId": "…" },
+  "responseType": "text" | "embed", "content": "…", "embed": { "title", "description", "color" } | null }
+```
+
+- **Targets are checked against the server first**: the channel must be a text or announcement channel in this server, and a DM recipient must be a member of it.
+- **No pings**: nothing pings anyone. `@everyone` and mentions show as plain text.
+- **Refused DMs**: a DM fails with a clear message when the member has turned off DMs from server members.
+- **History**: every send is logged in Activity under "Sent from web", with a link to the message for channel posts and the Clerk user who sent it. The page lists the last 10.
 
 ## Reminders
 
@@ -155,5 +172,6 @@ How it behaves:
 - `src/db/schema.ts`: Drizzle schema. `drizzle/` holds the generated migrations.
 - `src/routes/api/`: the REST API. Auth is enforced for all of `/api` by `src/routes/api/route.ts`.
 - `src/routes/dashboard/`: the dashboard, client-rendered (`ssr: false`).
+- `src/server/`: server-only helpers for Discord REST, auth, sending and scheduling.
 - `src/lib/`: code shared by the bot and the web app, such as schemas, templates, matching, scheduling (`schedule.ts`) and the API client.
 - `src/styles.css`: theme tokens, dark only.

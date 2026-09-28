@@ -23,10 +23,13 @@ import { Route as DashboardGuildIdCommandsRouteImport } from './routes/dashboard
 import { Route as DashboardGuildIdRemindersRouteImport } from './routes/dashboard/$guildId/reminders'
 import { Route as DashboardGuildIdRespondersRouteImport } from './routes/dashboard/$guildId/responders'
 import { Route as DashboardGuildIdSchedulesRouteImport } from './routes/dashboard/$guildId/schedules'
+import { Route as DashboardGuildIdSendRouteImport } from './routes/dashboard/$guildId/send'
 import { Route as DashboardGuildIdWelcomeRouteImport } from './routes/dashboard/$guildId/welcome'
 import { Route as ApiGuildsGuildIdIndexRouteImport } from './routes/api/guilds/$guildId/index'
 import { Route as ApiGuildsGuildIdActivityRouteImport } from './routes/api/guilds/$guildId/activity'
 import { Route as ApiGuildsGuildIdChannelsRouteImport } from './routes/api/guilds/$guildId/channels'
+import { Route as ApiGuildsGuildIdMembersRouteImport } from './routes/api/guilds/$guildId/members'
+import { Route as ApiGuildsGuildIdMessagesRouteImport } from './routes/api/guilds/$guildId/messages'
 import { Route as ApiGuildsGuildIdRolesRouteImport } from './routes/api/guilds/$guildId/roles'
 import { Route as ApiGuildsGuildIdWelcomeRouteImport } from './routes/api/guilds/$guildId/welcome'
 import { Route as ApiGuildsGuildIdCommandsIndexRouteImport } from './routes/api/guilds/$guildId/commands/index'
@@ -115,6 +118,11 @@ const DashboardGuildIdSchedulesRoute =
     path: '/schedules',
     getParentRoute: () => DashboardGuildIdRouteRoute,
   } as any)
+const DashboardGuildIdSendRoute = DashboardGuildIdSendRouteImport.update({
+  id: '/send',
+  path: '/send',
+  getParentRoute: () => DashboardGuildIdRouteRoute,
+} as any)
 const DashboardGuildIdWelcomeRoute = DashboardGuildIdWelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
@@ -135,6 +143,17 @@ const ApiGuildsGuildIdChannelsRoute =
   ApiGuildsGuildIdChannelsRouteImport.update({
     id: '/guilds/$guildId/channels',
     path: '/guilds/$guildId/channels',
+    getParentRoute: () => ApiRouteRoute,
+  } as any)
+const ApiGuildsGuildIdMembersRoute = ApiGuildsGuildIdMembersRouteImport.update({
+  id: '/guilds/$guildId/members',
+  path: '/guilds/$guildId/members',
+  getParentRoute: () => ApiRouteRoute,
+} as any)
+const ApiGuildsGuildIdMessagesRoute =
+  ApiGuildsGuildIdMessagesRouteImport.update({
+    id: '/guilds/$guildId/messages',
+    path: '/guilds/$guildId/messages',
     getParentRoute: () => ApiRouteRoute,
   } as any)
 const ApiGuildsGuildIdRolesRoute = ApiGuildsGuildIdRolesRouteImport.update({
@@ -221,11 +240,14 @@ export interface FileRoutesByFullPath {
   '/dashboard/$guildId/reminders': typeof DashboardGuildIdRemindersRoute
   '/dashboard/$guildId/responders': typeof DashboardGuildIdRespondersRoute
   '/dashboard/$guildId/schedules': typeof DashboardGuildIdSchedulesRoute
+  '/dashboard/$guildId/send': typeof DashboardGuildIdSendRoute
   '/dashboard/$guildId/welcome': typeof DashboardGuildIdWelcomeRoute
   '/api/guilds/': typeof ApiGuildsIndexRoute
   '/dashboard/$guildId/': typeof DashboardGuildIdIndexRoute
   '/api/guilds/$guildId/activity': typeof ApiGuildsGuildIdActivityRoute
   '/api/guilds/$guildId/channels': typeof ApiGuildsGuildIdChannelsRoute
+  '/api/guilds/$guildId/members': typeof ApiGuildsGuildIdMembersRoute
+  '/api/guilds/$guildId/messages': typeof ApiGuildsGuildIdMessagesRoute
   '/api/guilds/$guildId/roles': typeof ApiGuildsGuildIdRolesRoute
   '/api/guilds/$guildId/welcome': typeof ApiGuildsGuildIdWelcomeRoute
   '/api/guilds/$guildId/': typeof ApiGuildsGuildIdIndexRoute
@@ -251,11 +273,14 @@ export interface FileRoutesByTo {
   '/dashboard/$guildId/reminders': typeof DashboardGuildIdRemindersRoute
   '/dashboard/$guildId/responders': typeof DashboardGuildIdRespondersRoute
   '/dashboard/$guildId/schedules': typeof DashboardGuildIdSchedulesRoute
+  '/dashboard/$guildId/send': typeof DashboardGuildIdSendRoute
   '/dashboard/$guildId/welcome': typeof DashboardGuildIdWelcomeRoute
   '/api/guilds': typeof ApiGuildsIndexRoute
   '/dashboard/$guildId': typeof DashboardGuildIdIndexRoute
   '/api/guilds/$guildId/activity': typeof ApiGuildsGuildIdActivityRoute
   '/api/guilds/$guildId/channels': typeof ApiGuildsGuildIdChannelsRoute
+  '/api/guilds/$guildId/members': typeof ApiGuildsGuildIdMembersRoute
+  '/api/guilds/$guildId/messages': typeof ApiGuildsGuildIdMessagesRoute
   '/api/guilds/$guildId/roles': typeof ApiGuildsGuildIdRolesRoute
   '/api/guilds/$guildId/welcome': typeof ApiGuildsGuildIdWelcomeRoute
   '/api/guilds/$guildId': typeof ApiGuildsGuildIdIndexRoute
@@ -284,11 +309,14 @@ export interface FileRoutesById {
   '/dashboard/$guildId/reminders': typeof DashboardGuildIdRemindersRoute
   '/dashboard/$guildId/responders': typeof DashboardGuildIdRespondersRoute
   '/dashboard/$guildId/schedules': typeof DashboardGuildIdSchedulesRoute
+  '/dashboard/$guildId/send': typeof DashboardGuildIdSendRoute
   '/dashboard/$guildId/welcome': typeof DashboardGuildIdWelcomeRoute
   '/api/guilds/': typeof ApiGuildsIndexRoute
   '/dashboard/$guildId/': typeof DashboardGuildIdIndexRoute
   '/api/guilds/$guildId/activity': typeof ApiGuildsGuildIdActivityRoute
   '/api/guilds/$guildId/channels': typeof ApiGuildsGuildIdChannelsRoute
+  '/api/guilds/$guildId/members': typeof ApiGuildsGuildIdMembersRoute
+  '/api/guilds/$guildId/messages': typeof ApiGuildsGuildIdMessagesRoute
   '/api/guilds/$guildId/roles': typeof ApiGuildsGuildIdRolesRoute
   '/api/guilds/$guildId/welcome': typeof ApiGuildsGuildIdWelcomeRoute
   '/api/guilds/$guildId/': typeof ApiGuildsGuildIdIndexRoute
@@ -318,11 +346,14 @@ export interface FileRouteTypes {
     | '/dashboard/$guildId/reminders'
     | '/dashboard/$guildId/responders'
     | '/dashboard/$guildId/schedules'
+    | '/dashboard/$guildId/send'
     | '/dashboard/$guildId/welcome'
     | '/api/guilds/'
     | '/dashboard/$guildId/'
     | '/api/guilds/$guildId/activity'
     | '/api/guilds/$guildId/channels'
+    | '/api/guilds/$guildId/members'
+    | '/api/guilds/$guildId/messages'
     | '/api/guilds/$guildId/roles'
     | '/api/guilds/$guildId/welcome'
     | '/api/guilds/$guildId/'
@@ -348,11 +379,14 @@ export interface FileRouteTypes {
     | '/dashboard/$guildId/reminders'
     | '/dashboard/$guildId/responders'
     | '/dashboard/$guildId/schedules'
+    | '/dashboard/$guildId/send'
     | '/dashboard/$guildId/welcome'
     | '/api/guilds'
     | '/dashboard/$guildId'
     | '/api/guilds/$guildId/activity'
     | '/api/guilds/$guildId/channels'
+    | '/api/guilds/$guildId/members'
+    | '/api/guilds/$guildId/messages'
     | '/api/guilds/$guildId/roles'
     | '/api/guilds/$guildId/welcome'
     | '/api/guilds/$guildId'
@@ -380,11 +414,14 @@ export interface FileRouteTypes {
     | '/dashboard/$guildId/reminders'
     | '/dashboard/$guildId/responders'
     | '/dashboard/$guildId/schedules'
+    | '/dashboard/$guildId/send'
     | '/dashboard/$guildId/welcome'
     | '/api/guilds/'
     | '/dashboard/$guildId/'
     | '/api/guilds/$guildId/activity'
     | '/api/guilds/$guildId/channels'
+    | '/api/guilds/$guildId/members'
+    | '/api/guilds/$guildId/messages'
     | '/api/guilds/$guildId/roles'
     | '/api/guilds/$guildId/welcome'
     | '/api/guilds/$guildId/'
@@ -506,6 +543,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardGuildIdSchedulesRouteImport
       parentRoute: typeof DashboardGuildIdRouteRoute
     }
+    '/dashboard/$guildId/send': {
+      id: '/dashboard/$guildId/send'
+      path: '/send'
+      fullPath: '/dashboard/$guildId/send'
+      preLoaderRoute: typeof DashboardGuildIdSendRouteImport
+      parentRoute: typeof DashboardGuildIdRouteRoute
+    }
     '/dashboard/$guildId/welcome': {
       id: '/dashboard/$guildId/welcome'
       path: '/welcome'
@@ -532,6 +576,20 @@ declare module '@tanstack/react-router' {
       path: '/guilds/$guildId/channels'
       fullPath: '/api/guilds/$guildId/channels'
       preLoaderRoute: typeof ApiGuildsGuildIdChannelsRouteImport
+      parentRoute: typeof ApiRouteRoute
+    }
+    '/api/guilds/$guildId/members': {
+      id: '/api/guilds/$guildId/members'
+      path: '/guilds/$guildId/members'
+      fullPath: '/api/guilds/$guildId/members'
+      preLoaderRoute: typeof ApiGuildsGuildIdMembersRouteImport
+      parentRoute: typeof ApiRouteRoute
+    }
+    '/api/guilds/$guildId/messages': {
+      id: '/api/guilds/$guildId/messages'
+      path: '/guilds/$guildId/messages'
+      fullPath: '/api/guilds/$guildId/messages'
+      preLoaderRoute: typeof ApiGuildsGuildIdMessagesRouteImport
       parentRoute: typeof ApiRouteRoute
     }
     '/api/guilds/$guildId/roles': {
@@ -627,6 +685,8 @@ interface ApiRouteRouteChildren {
   ApiGuildsIndexRoute: typeof ApiGuildsIndexRoute
   ApiGuildsGuildIdActivityRoute: typeof ApiGuildsGuildIdActivityRoute
   ApiGuildsGuildIdChannelsRoute: typeof ApiGuildsGuildIdChannelsRoute
+  ApiGuildsGuildIdMembersRoute: typeof ApiGuildsGuildIdMembersRoute
+  ApiGuildsGuildIdMessagesRoute: typeof ApiGuildsGuildIdMessagesRoute
   ApiGuildsGuildIdRolesRoute: typeof ApiGuildsGuildIdRolesRoute
   ApiGuildsGuildIdWelcomeRoute: typeof ApiGuildsGuildIdWelcomeRoute
   ApiGuildsGuildIdIndexRoute: typeof ApiGuildsGuildIdIndexRoute
@@ -648,6 +708,8 @@ const ApiRouteRouteChildren: ApiRouteRouteChildren = {
   ApiGuildsIndexRoute: ApiGuildsIndexRoute,
   ApiGuildsGuildIdActivityRoute: ApiGuildsGuildIdActivityRoute,
   ApiGuildsGuildIdChannelsRoute: ApiGuildsGuildIdChannelsRoute,
+  ApiGuildsGuildIdMembersRoute: ApiGuildsGuildIdMembersRoute,
+  ApiGuildsGuildIdMessagesRoute: ApiGuildsGuildIdMessagesRoute,
   ApiGuildsGuildIdRolesRoute: ApiGuildsGuildIdRolesRoute,
   ApiGuildsGuildIdWelcomeRoute: ApiGuildsGuildIdWelcomeRoute,
   ApiGuildsGuildIdIndexRoute: ApiGuildsGuildIdIndexRoute,
@@ -674,6 +736,7 @@ interface DashboardGuildIdRouteRouteChildren {
   DashboardGuildIdRemindersRoute: typeof DashboardGuildIdRemindersRoute
   DashboardGuildIdRespondersRoute: typeof DashboardGuildIdRespondersRoute
   DashboardGuildIdSchedulesRoute: typeof DashboardGuildIdSchedulesRoute
+  DashboardGuildIdSendRoute: typeof DashboardGuildIdSendRoute
   DashboardGuildIdWelcomeRoute: typeof DashboardGuildIdWelcomeRoute
   DashboardGuildIdIndexRoute: typeof DashboardGuildIdIndexRoute
 }
@@ -684,6 +747,7 @@ const DashboardGuildIdRouteRouteChildren: DashboardGuildIdRouteRouteChildren = {
   DashboardGuildIdRemindersRoute: DashboardGuildIdRemindersRoute,
   DashboardGuildIdRespondersRoute: DashboardGuildIdRespondersRoute,
   DashboardGuildIdSchedulesRoute: DashboardGuildIdSchedulesRoute,
+  DashboardGuildIdSendRoute: DashboardGuildIdSendRoute,
   DashboardGuildIdWelcomeRoute: DashboardGuildIdWelcomeRoute,
   DashboardGuildIdIndexRoute: DashboardGuildIdIndexRoute,
 }

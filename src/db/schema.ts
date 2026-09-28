@@ -111,6 +111,7 @@ export const activityType = pgEnum('activity_type', [
   'error',
   'scheduled',
   'reminder',
+  'message',
 ])
 
 export const activityLog = pgTable(

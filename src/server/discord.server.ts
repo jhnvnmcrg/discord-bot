@@ -1,4 +1,4 @@
-import type { ChannelOption, RoleOption } from '#/lib/api-types.ts'
+import type { ChannelOption, MemberOption, RoleOption } from '#/lib/api-types.ts'
 import { MESSAGE_CHANNEL_TYPES } from '#/lib/discord.ts'
 
 const API = 'https://discord.com/api/v10'
@@ -114,4 +114,67 @@ export async function listRoles(guildId: string): Promise<RoleOption[]> {
       color: r.color,
       assignable: r.position < botTop,
     }))
+}
+
+type RawUser = {
+  id: string
+  username: string
+  global_name: string | null
+  avatar: string | null
+  bot?: boolean
+}
+
+type RawMember = { user: RawUser; nick: string | null; avatar: string | null }
+
+function avatarUrl(guildId: string, member: RawMember) {
+  const { user } = member
+  if (member.avatar) {
+    return `https://cdn.discordapp.com/guilds/${guildId}/users/${user.id}/avatars/${member.avatar}.png?size=64`
+  }
+  if (user.avatar) {
+    return `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`
+  }
+  // Discord's default avatars, picked the same way the client does.
+  return `https://cdn.discordapp.com/embed/avatars/${Number((BigInt(user.id) >> 22n) % 6n)}.png`
+}
+
+function toMemberOption(guildId: string, member: RawMember): MemberOption {
+  return {
+    id: member.user.id,
+    username: member.user.username,
+    displayName: member.nick ?? member.user.global_name ?? member.user.username,
+    avatarUrl: avatarUrl(guildId, member),
+  }
+}
+
+/** Members whose username or nickname starts with `query` (people only, no bots). */
+export async function searchMembers(guildId: string, query: string) {
+  const params = new URLSearchParams({ query, limit: '10' })
+  const members = await discordGet<RawMember[]>(
+    `/guilds/${guildId}/members/search?${params}`,
+  )
+  return members
+    .filter((member) => !member.user.bot)
+    .map((member) => toMemberOption(guildId, member))
+}
+
+/** The member, or undefined if they aren't in the server. */
+export async function getMember(guildId: string, userId: string) {
+  try {
+    return toMemberOption(
+      guildId,
+      await discordGet<RawMember>(`/guilds/${guildId}/members/${userId}`),
+    )
+  } catch (error) {
+    if (error instanceof DiscordApiError && error.status === 404) return undefined
+    throw error
+  }
+}
+
+/** Opens (or reuses) the bot's DM channel with a user and returns its id. */
+export async function openDm(userId: string) {
+  const channel = await discordPost<{ id: string }>('/users/@me/channels', {
+    recipient_id: userId,
+  })
+  return channel.id
 }

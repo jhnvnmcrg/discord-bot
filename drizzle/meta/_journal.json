@@ -22,6 +22,13 @@
       "when": 1790575313007,
       "tag": "0002_lying_cobalt_man",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790581375245,
+      "tag": "0003_robust_jocasta",
+      "breakpoints": true
     }
   ]
 }

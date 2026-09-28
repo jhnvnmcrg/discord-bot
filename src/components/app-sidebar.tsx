@@ -11,6 +11,7 @@ import {
   LayoutGridIcon,
   MessageSquareReplyIcon,
   PlusIcon,
+  SendIcon,
   SlashSquareIcon,
 } from 'lucide-react'
 
@@ -144,6 +145,7 @@ function GuildNav({ guild }: { guild: GuildSummary }) {
   const params = { guildId: guild.id }
   const items = [
     { to: '/dashboard/$guildId', label: 'Overview', icon: LayoutDashboardIcon, exact: true },
+    { to: '/dashboard/$guildId/send', label: 'Send a message', icon: SendIcon },
     { to: '/dashboard/$guildId/commands', label: 'Slash commands', icon: SlashSquareIcon, badge: guild.commandCount },
     { to: '/dashboard/$guildId/responders', label: 'Auto-responders', icon: MessageSquareReplyIcon, badge: guild.responderCount },
     { to: '/dashboard/$guildId/schedules', label: 'Scheduled messages', icon: CalendarClockIcon, badge: guild.scheduleCount },
