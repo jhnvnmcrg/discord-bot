@@ -26,7 +26,11 @@ function SetupRow({
   status,
   on,
 }: {
-  to: '/dashboard/$guildId/commands' | '/dashboard/$guildId/responders' | '/dashboard/$guildId/welcome'
+  to:
+    | '/dashboard/$guildId/commands'
+    | '/dashboard/$guildId/responders'
+    | '/dashboard/$guildId/schedules'
+    | '/dashboard/$guildId/welcome'
   label: string
   status: string
   on: boolean
@@ -83,6 +87,12 @@ function GuildOverview() {
                 label="Auto-responders"
                 status={plural(guild.responderCount, 'trigger')}
                 on={guild.responderCount > 0}
+              />
+              <SetupRow
+                to="/dashboard/$guildId/schedules"
+                label="Scheduled messages"
+                status={plural(guild.scheduleCount, 'message')}
+                on={guild.scheduleCount > 0}
               />
               <SetupRow
                 to="/dashboard/$guildId/welcome"

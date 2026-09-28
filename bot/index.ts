@@ -13,6 +13,7 @@ import { registerMessageEvents } from './events/message.ts'
 import { syncAllGuilds } from './guilds.ts'
 import { markOffline, startHeartbeat } from './heartbeat.ts'
 import { startConfigListener } from './listener.ts'
+import { startScheduler } from './scheduler.ts'
 
 const FALLBACK_RELOAD_MS = 5 * 60_000
 
@@ -59,6 +60,7 @@ const listener = startConfigListener({
 })
 
 let stopHeartbeat: (() => void) | undefined
+let stopScheduler: (() => void) | undefined
 let fallbackTimer: NodeJS.Timeout | undefined
 
 client.once(Events.ClientReady, async (ready) => {
@@ -77,6 +79,7 @@ client.once(Events.ClientReady, async (ready) => {
     )
   }
   stopHeartbeat = startHeartbeat(ready)
+  stopScheduler = startScheduler(ready)
   // Safety net in case a notification is ever lost.
   fallbackTimer = setInterval(() => {
     refreshAll().catch((error) => console.error('Periodic reload failed', error))
@@ -89,6 +92,7 @@ async function shutdown(signal: string) {
   shuttingDown = true
   console.log(`${signal} received, shutting down`)
   stopHeartbeat?.()
+  stopScheduler?.()
   clearInterval(fallbackTimer)
   await markOffline().catch(() => {})
   await listener.stop()

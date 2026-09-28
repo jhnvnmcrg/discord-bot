@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { cronProblem, isValidTimezone } from './schedule.ts'
+
 // Shared by the REST API (request validation) and the dashboard forms.
 // Keep this file free of transforms so form input and output types match.
 
@@ -17,32 +19,25 @@ export const embedFields = z.object({
   color: hexColor,
 })
 
-export const commandFields = z.object({
-  name: z
-    .string()
-    .regex(
-      /^[-_\p{L}\p{N}]{1,32}$/u,
-      'Use 1–32 letters, numbers, dashes or underscores, with no spaces',
-    )
-    .refine((name) => name === name.toLowerCase(), 'Use lowercase letters'),
-  description: z
-    .string()
-    .trim()
-    .min(1, 'Add a description')
-    .max(100, 'Keep it under 100 characters'),
+// A text message or an embed — used by slash commands and scheduled messages.
+const replyFields = {
   responseType: z.enum(['text', 'embed']),
   content: z.string().max(2000, 'Messages can be at most 2000 characters'),
   embed: embedFields.nullable(),
-  ephemeral: z.boolean(),
-  enabled: z.boolean(),
-})
+}
 
-export const commandInput = commandFields.superRefine((value, ctx) => {
+type Reply = {
+  responseType: 'text' | 'embed'
+  content: string
+  embed: z.infer<typeof embedFields> | null
+}
+
+function refineReply(value: Reply, ctx: z.RefinementCtx) {
   if (value.responseType === 'text' && value.content.trim() === '') {
     ctx.addIssue({
       code: 'custom',
       path: ['content'],
-      message: 'Write the reply the bot should send',
+      message: 'Write the message the bot should send',
     })
   }
   if (
@@ -56,7 +51,27 @@ export const commandInput = commandFields.superRefine((value, ctx) => {
       message: 'Give the embed a title or a description',
     })
   }
+}
+
+export const commandFields = z.object({
+  name: z
+    .string()
+    .regex(
+      /^[-_\p{L}\p{N}]{1,32}$/u,
+      'Use 1–32 letters, numbers, dashes or underscores, with no spaces',
+    )
+    .refine((name) => name === name.toLowerCase(), 'Use lowercase letters'),
+  description: z
+    .string()
+    .trim()
+    .min(1, 'Add a description')
+    .max(100, 'Keep it under 100 characters'),
+  ...replyFields,
+  ephemeral: z.boolean(),
+  enabled: z.boolean(),
 })
+
+export const commandInput = commandFields.superRefine(refineReply)
 
 export type CommandInput = z.infer<typeof commandInput>
 
@@ -123,3 +138,60 @@ export const welcomeInput = z
   })
 
 export type WelcomeInput = z.infer<typeof welcomeInput>
+
+const time = z
+  .string()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Pick a time')
+
+export const scheduleSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('once'),
+    at: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):[0-5]\d$/, 'Pick a date and time'),
+  }),
+  z.object({ type: z.literal('daily'), time }),
+  z.object({
+    type: z.literal('weekly'),
+    time,
+    days: z
+      .array(z.number().int().min(0).max(6))
+      .min(1, 'Pick at least one day')
+      .max(7),
+  }),
+  z.object({
+    type: z.literal('monthly'),
+    time,
+    day: z.union([z.number().int().min(1).max(28), z.literal('last')]),
+  }),
+  z.object({
+    type: z.literal('cron'),
+    expression: z
+      .string()
+      .trim()
+      .min(1, 'Write a cron expression')
+      .max(100)
+      .superRefine((expression, ctx) => {
+        const problem = cronProblem(expression)
+        if (problem) ctx.addIssue({ code: 'custom', message: problem })
+      }),
+  }),
+])
+
+export const scheduledMessageFields = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, 'Give it a name')
+    .max(100, 'Keep it under 100 characters'),
+  channelId: z.string().regex(/^\d{17,20}$/, 'Pick a channel'),
+  schedule: scheduleSchema,
+  timezone: z.string().refine(isValidTimezone, 'Pick a time zone'),
+  ...replyFields,
+  enabled: z.boolean(),
+})
+
+export const scheduledMessageInput =
+  scheduledMessageFields.superRefine(refineReply)
+
+export type ScheduledMessageInput = z.infer<typeof scheduledMessageInput>

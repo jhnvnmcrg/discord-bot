@@ -1,13 +1,11 @@
 import {
   type ChatInputCommandInteraction,
   type Client,
-  EmbedBuilder,
   Events,
-  type HexColorString,
   MessageFlags,
 } from 'discord.js'
 
-import { renderTemplate } from '#/lib/templates.ts'
+import { buildMessagePayload } from '#/lib/message-payload.ts'
 
 import { getGuildConfig } from '../config-cache.ts'
 import { logActivity, logError } from '../log.ts'
@@ -37,22 +35,10 @@ async function handleCommand(interaction: ChatInputCommandInteraction) {
     guild: interaction.guild,
     channelId: interaction.channelId,
   })
-  const flags = command.ephemeral ? MessageFlags.Ephemeral : undefined
-
-  if (command.responseType === 'embed' && command.embed) {
-    const embed = new EmbedBuilder()
-    const title = renderTemplate(command.embed.title ?? '', vars).trim()
-    const description = renderTemplate(command.embed.description ?? '', vars).trim()
-    if (title) embed.setTitle(title.slice(0, 256))
-    if (description) embed.setDescription(description.slice(0, 4096))
-    if (command.embed.color) embed.setColor(command.embed.color as HexColorString)
-    await interaction.reply({ embeds: [embed], flags })
-  } else {
-    await interaction.reply({
-      content: renderTemplate(command.content, vars).slice(0, 2000),
-      flags,
-    })
-  }
+  await interaction.reply({
+    ...buildMessagePayload(command, vars),
+    flags: command.ephemeral ? MessageFlags.Ephemeral : undefined,
+  })
 
   await logActivity({
     guildId,

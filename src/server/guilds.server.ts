@@ -9,6 +9,7 @@ const summaryColumns = {
   ...getTableColumns(guilds),
   commandCount: sql<number>`(select count(*)::int from custom_commands c where c.guild_id = guilds.id)`,
   responderCount: sql<number>`(select count(*)::int from auto_responders r where r.guild_id = guilds.id)`,
+  scheduleCount: sql<number>`(select count(*)::int from scheduled_messages s where s.guild_id = guilds.id)`,
   welcomeEnabled: sql<boolean>`coalesce((select w.enabled from welcome_settings w where w.guild_id = guilds.id), false)`,
 }
 

@@ -21,6 +21,7 @@ import { Route as DashboardGuildIdIndexRouteImport } from './routes/dashboard/$g
 import { Route as DashboardGuildIdActivityRouteImport } from './routes/dashboard/$guildId/activity'
 import { Route as DashboardGuildIdCommandsRouteImport } from './routes/dashboard/$guildId/commands'
 import { Route as DashboardGuildIdRespondersRouteImport } from './routes/dashboard/$guildId/responders'
+import { Route as DashboardGuildIdSchedulesRouteImport } from './routes/dashboard/$guildId/schedules'
 import { Route as DashboardGuildIdWelcomeRouteImport } from './routes/dashboard/$guildId/welcome'
 import { Route as ApiGuildsGuildIdIndexRouteImport } from './routes/api/guilds/$guildId/index'
 import { Route as ApiGuildsGuildIdActivityRouteImport } from './routes/api/guilds/$guildId/activity'
@@ -31,6 +32,9 @@ import { Route as ApiGuildsGuildIdCommandsIndexRouteImport } from './routes/api/
 import { Route as ApiGuildsGuildIdCommandsIdRouteImport } from './routes/api/guilds/$guildId/commands/$id'
 import { Route as ApiGuildsGuildIdRespondersIndexRouteImport } from './routes/api/guilds/$guildId/responders/index'
 import { Route as ApiGuildsGuildIdRespondersIdRouteImport } from './routes/api/guilds/$guildId/responders/$id'
+import { Route as ApiGuildsGuildIdSchedulesIndexRouteImport } from './routes/api/guilds/$guildId/schedules/index'
+import { Route as ApiGuildsGuildIdSchedulesIdIndexRouteImport } from './routes/api/guilds/$guildId/schedules/$id/index'
+import { Route as ApiGuildsGuildIdSchedulesIdSendRouteImport } from './routes/api/guilds/$guildId/schedules/$id/send'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -95,6 +99,12 @@ const DashboardGuildIdRespondersRoute =
     path: '/responders',
     getParentRoute: () => DashboardGuildIdRouteRoute,
   } as any)
+const DashboardGuildIdSchedulesRoute =
+  DashboardGuildIdSchedulesRouteImport.update({
+    id: '/schedules',
+    path: '/schedules',
+    getParentRoute: () => DashboardGuildIdRouteRoute,
+  } as any)
 const DashboardGuildIdWelcomeRoute = DashboardGuildIdWelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
@@ -151,6 +161,24 @@ const ApiGuildsGuildIdRespondersIdRoute =
     path: '/guilds/$guildId/responders/$id',
     getParentRoute: () => ApiRouteRoute,
   } as any)
+const ApiGuildsGuildIdSchedulesIndexRoute =
+  ApiGuildsGuildIdSchedulesIndexRouteImport.update({
+    id: '/guilds/$guildId/schedules/',
+    path: '/guilds/$guildId/schedules/',
+    getParentRoute: () => ApiRouteRoute,
+  } as any)
+const ApiGuildsGuildIdSchedulesIdIndexRoute =
+  ApiGuildsGuildIdSchedulesIdIndexRouteImport.update({
+    id: '/guilds/$guildId/schedules/$id/',
+    path: '/guilds/$guildId/schedules/$id/',
+    getParentRoute: () => ApiRouteRoute,
+  } as any)
+const ApiGuildsGuildIdSchedulesIdSendRoute =
+  ApiGuildsGuildIdSchedulesIdSendRouteImport.update({
+    id: '/guilds/$guildId/schedules/$id/send',
+    path: '/guilds/$guildId/schedules/$id/send',
+    getParentRoute: () => ApiRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -163,6 +191,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/$guildId/activity': typeof DashboardGuildIdActivityRoute
   '/dashboard/$guildId/commands': typeof DashboardGuildIdCommandsRoute
   '/dashboard/$guildId/responders': typeof DashboardGuildIdRespondersRoute
+  '/dashboard/$guildId/schedules': typeof DashboardGuildIdSchedulesRoute
   '/dashboard/$guildId/welcome': typeof DashboardGuildIdWelcomeRoute
   '/api/guilds/': typeof ApiGuildsIndexRoute
   '/dashboard/$guildId/': typeof DashboardGuildIdIndexRoute
@@ -175,6 +204,9 @@ export interface FileRoutesByFullPath {
   '/api/guilds/$guildId/responders/$id': typeof ApiGuildsGuildIdRespondersIdRoute
   '/api/guilds/$guildId/commands/': typeof ApiGuildsGuildIdCommandsIndexRoute
   '/api/guilds/$guildId/responders/': typeof ApiGuildsGuildIdRespondersIndexRoute
+  '/api/guilds/$guildId/schedules/': typeof ApiGuildsGuildIdSchedulesIndexRoute
+  '/api/guilds/$guildId/schedules/$id/send': typeof ApiGuildsGuildIdSchedulesIdSendRoute
+  '/api/guilds/$guildId/schedules/$id/': typeof ApiGuildsGuildIdSchedulesIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -185,6 +217,7 @@ export interface FileRoutesByTo {
   '/dashboard/$guildId/activity': typeof DashboardGuildIdActivityRoute
   '/dashboard/$guildId/commands': typeof DashboardGuildIdCommandsRoute
   '/dashboard/$guildId/responders': typeof DashboardGuildIdRespondersRoute
+  '/dashboard/$guildId/schedules': typeof DashboardGuildIdSchedulesRoute
   '/dashboard/$guildId/welcome': typeof DashboardGuildIdWelcomeRoute
   '/api/guilds': typeof ApiGuildsIndexRoute
   '/dashboard/$guildId': typeof DashboardGuildIdIndexRoute
@@ -197,6 +230,9 @@ export interface FileRoutesByTo {
   '/api/guilds/$guildId/responders/$id': typeof ApiGuildsGuildIdRespondersIdRoute
   '/api/guilds/$guildId/commands': typeof ApiGuildsGuildIdCommandsIndexRoute
   '/api/guilds/$guildId/responders': typeof ApiGuildsGuildIdRespondersIndexRoute
+  '/api/guilds/$guildId/schedules': typeof ApiGuildsGuildIdSchedulesIndexRoute
+  '/api/guilds/$guildId/schedules/$id/send': typeof ApiGuildsGuildIdSchedulesIdSendRoute
+  '/api/guilds/$guildId/schedules/$id': typeof ApiGuildsGuildIdSchedulesIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -210,6 +246,7 @@ export interface FileRoutesById {
   '/dashboard/$guildId/activity': typeof DashboardGuildIdActivityRoute
   '/dashboard/$guildId/commands': typeof DashboardGuildIdCommandsRoute
   '/dashboard/$guildId/responders': typeof DashboardGuildIdRespondersRoute
+  '/dashboard/$guildId/schedules': typeof DashboardGuildIdSchedulesRoute
   '/dashboard/$guildId/welcome': typeof DashboardGuildIdWelcomeRoute
   '/api/guilds/': typeof ApiGuildsIndexRoute
   '/dashboard/$guildId/': typeof DashboardGuildIdIndexRoute
@@ -222,6 +259,9 @@ export interface FileRoutesById {
   '/api/guilds/$guildId/responders/$id': typeof ApiGuildsGuildIdRespondersIdRoute
   '/api/guilds/$guildId/commands/': typeof ApiGuildsGuildIdCommandsIndexRoute
   '/api/guilds/$guildId/responders/': typeof ApiGuildsGuildIdRespondersIndexRoute
+  '/api/guilds/$guildId/schedules/': typeof ApiGuildsGuildIdSchedulesIndexRoute
+  '/api/guilds/$guildId/schedules/$id/send': typeof ApiGuildsGuildIdSchedulesIdSendRoute
+  '/api/guilds/$guildId/schedules/$id/': typeof ApiGuildsGuildIdSchedulesIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -236,6 +276,7 @@ export interface FileRouteTypes {
     | '/dashboard/$guildId/activity'
     | '/dashboard/$guildId/commands'
     | '/dashboard/$guildId/responders'
+    | '/dashboard/$guildId/schedules'
     | '/dashboard/$guildId/welcome'
     | '/api/guilds/'
     | '/dashboard/$guildId/'
@@ -248,6 +289,9 @@ export interface FileRouteTypes {
     | '/api/guilds/$guildId/responders/$id'
     | '/api/guilds/$guildId/commands/'
     | '/api/guilds/$guildId/responders/'
+    | '/api/guilds/$guildId/schedules/'
+    | '/api/guilds/$guildId/schedules/$id/send'
+    | '/api/guilds/$guildId/schedules/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -258,6 +302,7 @@ export interface FileRouteTypes {
     | '/dashboard/$guildId/activity'
     | '/dashboard/$guildId/commands'
     | '/dashboard/$guildId/responders'
+    | '/dashboard/$guildId/schedules'
     | '/dashboard/$guildId/welcome'
     | '/api/guilds'
     | '/dashboard/$guildId'
@@ -270,6 +315,9 @@ export interface FileRouteTypes {
     | '/api/guilds/$guildId/responders/$id'
     | '/api/guilds/$guildId/commands'
     | '/api/guilds/$guildId/responders'
+    | '/api/guilds/$guildId/schedules'
+    | '/api/guilds/$guildId/schedules/$id/send'
+    | '/api/guilds/$guildId/schedules/$id'
   id:
     | '__root__'
     | '/'
@@ -282,6 +330,7 @@ export interface FileRouteTypes {
     | '/dashboard/$guildId/activity'
     | '/dashboard/$guildId/commands'
     | '/dashboard/$guildId/responders'
+    | '/dashboard/$guildId/schedules'
     | '/dashboard/$guildId/welcome'
     | '/api/guilds/'
     | '/dashboard/$guildId/'
@@ -294,6 +343,9 @@ export interface FileRouteTypes {
     | '/api/guilds/$guildId/responders/$id'
     | '/api/guilds/$guildId/commands/'
     | '/api/guilds/$guildId/responders/'
+    | '/api/guilds/$guildId/schedules/'
+    | '/api/guilds/$guildId/schedules/$id/send'
+    | '/api/guilds/$guildId/schedules/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -388,6 +440,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardGuildIdRespondersRouteImport
       parentRoute: typeof DashboardGuildIdRouteRoute
     }
+    '/dashboard/$guildId/schedules': {
+      id: '/dashboard/$guildId/schedules'
+      path: '/schedules'
+      fullPath: '/dashboard/$guildId/schedules'
+      preLoaderRoute: typeof DashboardGuildIdSchedulesRouteImport
+      parentRoute: typeof DashboardGuildIdRouteRoute
+    }
     '/dashboard/$guildId/welcome': {
       id: '/dashboard/$guildId/welcome'
       path: '/welcome'
@@ -458,6 +517,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGuildsGuildIdRespondersIdRouteImport
       parentRoute: typeof ApiRouteRoute
     }
+    '/api/guilds/$guildId/schedules/': {
+      id: '/api/guilds/$guildId/schedules/'
+      path: '/guilds/$guildId/schedules'
+      fullPath: '/api/guilds/$guildId/schedules/'
+      preLoaderRoute: typeof ApiGuildsGuildIdSchedulesIndexRouteImport
+      parentRoute: typeof ApiRouteRoute
+    }
+    '/api/guilds/$guildId/schedules/$id/': {
+      id: '/api/guilds/$guildId/schedules/$id/'
+      path: '/guilds/$guildId/schedules/$id'
+      fullPath: '/api/guilds/$guildId/schedules/$id/'
+      preLoaderRoute: typeof ApiGuildsGuildIdSchedulesIdIndexRouteImport
+      parentRoute: typeof ApiRouteRoute
+    }
+    '/api/guilds/$guildId/schedules/$id/send': {
+      id: '/api/guilds/$guildId/schedules/$id/send'
+      path: '/guilds/$guildId/schedules/$id/send'
+      fullPath: '/api/guilds/$guildId/schedules/$id/send'
+      preLoaderRoute: typeof ApiGuildsGuildIdSchedulesIdSendRouteImport
+      parentRoute: typeof ApiRouteRoute
+    }
   }
 }
 
@@ -474,6 +554,9 @@ interface ApiRouteRouteChildren {
   ApiGuildsGuildIdRespondersIdRoute: typeof ApiGuildsGuildIdRespondersIdRoute
   ApiGuildsGuildIdCommandsIndexRoute: typeof ApiGuildsGuildIdCommandsIndexRoute
   ApiGuildsGuildIdRespondersIndexRoute: typeof ApiGuildsGuildIdRespondersIndexRoute
+  ApiGuildsGuildIdSchedulesIndexRoute: typeof ApiGuildsGuildIdSchedulesIndexRoute
+  ApiGuildsGuildIdSchedulesIdSendRoute: typeof ApiGuildsGuildIdSchedulesIdSendRoute
+  ApiGuildsGuildIdSchedulesIdIndexRoute: typeof ApiGuildsGuildIdSchedulesIdIndexRoute
 }
 
 const ApiRouteRouteChildren: ApiRouteRouteChildren = {
@@ -489,6 +572,9 @@ const ApiRouteRouteChildren: ApiRouteRouteChildren = {
   ApiGuildsGuildIdRespondersIdRoute: ApiGuildsGuildIdRespondersIdRoute,
   ApiGuildsGuildIdCommandsIndexRoute: ApiGuildsGuildIdCommandsIndexRoute,
   ApiGuildsGuildIdRespondersIndexRoute: ApiGuildsGuildIdRespondersIndexRoute,
+  ApiGuildsGuildIdSchedulesIndexRoute: ApiGuildsGuildIdSchedulesIndexRoute,
+  ApiGuildsGuildIdSchedulesIdSendRoute: ApiGuildsGuildIdSchedulesIdSendRoute,
+  ApiGuildsGuildIdSchedulesIdIndexRoute: ApiGuildsGuildIdSchedulesIdIndexRoute,
 }
 
 const ApiRouteRouteWithChildren = ApiRouteRoute._addFileChildren(
@@ -499,6 +585,7 @@ interface DashboardGuildIdRouteRouteChildren {
   DashboardGuildIdActivityRoute: typeof DashboardGuildIdActivityRoute
   DashboardGuildIdCommandsRoute: typeof DashboardGuildIdCommandsRoute
   DashboardGuildIdRespondersRoute: typeof DashboardGuildIdRespondersRoute
+  DashboardGuildIdSchedulesRoute: typeof DashboardGuildIdSchedulesRoute
   DashboardGuildIdWelcomeRoute: typeof DashboardGuildIdWelcomeRoute
   DashboardGuildIdIndexRoute: typeof DashboardGuildIdIndexRoute
 }
@@ -507,6 +594,7 @@ const DashboardGuildIdRouteRouteChildren: DashboardGuildIdRouteRouteChildren = {
   DashboardGuildIdActivityRoute: DashboardGuildIdActivityRoute,
   DashboardGuildIdCommandsRoute: DashboardGuildIdCommandsRoute,
   DashboardGuildIdRespondersRoute: DashboardGuildIdRespondersRoute,
+  DashboardGuildIdSchedulesRoute: DashboardGuildIdSchedulesRoute,
   DashboardGuildIdWelcomeRoute: DashboardGuildIdWelcomeRoute,
   DashboardGuildIdIndexRoute: DashboardGuildIdIndexRoute,
 }

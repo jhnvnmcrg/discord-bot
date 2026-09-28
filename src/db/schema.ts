@@ -14,6 +14,7 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core'
 
+import type { Schedule } from '../lib/schedule.ts'
 import { DEFAULT_WELCOME_MESSAGE } from '../lib/templates.ts'
 
 // Discord snowflakes exceed Number.MAX_SAFE_INTEGER, so ids are stored as text.
@@ -108,6 +109,7 @@ export const activityType = pgEnum('activity_type', [
   'member_join',
   'member_leave',
   'error',
+  'scheduled',
 ])
 
 export const activityLog = pgTable(
@@ -125,6 +127,42 @@ export const activityLog = pgTable(
   (t) => [
     index('activity_log_created_idx').on(t.createdAt),
     index('activity_log_guild_created_idx').on(t.guildId, t.createdAt),
+  ],
+)
+
+export const scheduleResult = pgEnum('schedule_result', [
+  'sent',
+  'missed',
+  'failed',
+])
+
+export const scheduledMessages = pgTable(
+  'scheduled_messages',
+  {
+    id: serial().primaryKey(),
+    guildId: text('guild_id')
+      .notNull()
+      .references(() => guilds.id, { onDelete: 'cascade' }),
+    name: varchar({ length: 100 }).notNull(),
+    channelId: text('channel_id').notNull(),
+    schedule: jsonb().$type<Schedule>().notNull(),
+    /** IANA zone the schedule's wall-clock times are in, e.g. Europe/London. */
+    timezone: text().notNull(),
+    responseType: responseType('response_type').notNull().default('text'),
+    content: text().notNull().default(''),
+    embed: jsonb().$type<CommandEmbed>(),
+    enabled: boolean().notNull().default(true),
+    /** Null when nothing is due: disabled, or a one-time message already sent. */
+    nextRunAt: timestamp('next_run_at', { withTimezone: true }),
+    lastRunAt: timestamp('last_run_at', { withTimezone: true }),
+    lastResult: scheduleResult('last_result'),
+    lastError: text('last_error'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('scheduled_messages_guild_idx').on(t.guildId),
+    index('scheduled_messages_due_idx').on(t.nextRunAt),
   ],
 )
 
@@ -150,4 +188,5 @@ export type AutoResponder = typeof autoResponders.$inferSelect
 export type WelcomeSettings = typeof welcomeSettings.$inferSelect
 export type ActivityEntry = typeof activityLog.$inferSelect
 export type BotStatus = typeof botStatus.$inferSelect
+export type ScheduledMessage = typeof scheduledMessages.$inferSelect
 export type ActivityType = (typeof activityType.enumValues)[number]

@@ -4,6 +4,7 @@ import type {
   AutoResponder,
   CustomCommand,
   Guild,
+  ScheduledMessage,
   WelcomeSettings,
 } from '#/db/schema.ts'
 
@@ -30,11 +31,13 @@ export type BotStatusDto = {
 export type GuildSummary = Serialized<Guild> & {
   commandCount: number
   responderCount: number
+  scheduleCount: number
   welcomeEnabled: boolean
 }
 
 export type CommandDto = Serialized<CustomCommand>
 export type ResponderDto = Serialized<AutoResponder>
+export type ScheduleDto = Serialized<ScheduledMessage>
 export type WelcomeDto = Omit<Serialized<WelcomeSettings>, 'updatedAt'> & {
   updatedAt: string | null
 }

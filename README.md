@@ -5,6 +5,7 @@ A Discord bot and the web dashboard that configures it. Admins manage, per serve
 - **Slash commands**: reply with a message or an embed, optionally visible only to the sender.
 - **Auto-responders**: keyword or regex triggers with a per-channel cooldown.
 - **Welcome messages and auto-role** for new members.
+- **Scheduled messages**: one-time, daily, weekly, monthly or a custom cron, in a time zone you pick.
 - **Activity**: a log of everything the bot did, with 7-day stats.
 
 Everything the dashboard does goes through a REST API (`/api/*`), which you can also call from scripts.
@@ -75,6 +76,9 @@ Every route needs either an admin Clerk session or an `x-api-key: $DASHBOARD_API
 | GET, POST | `/api/guilds/:guildId/responders` | List or create auto-responders |
 | GET, PATCH, DELETE | `/api/guilds/:guildId/responders/:id` | |
 | GET, PUT | `/api/guilds/:guildId/welcome` | Welcome message and auto-role |
+| GET, POST | `/api/guilds/:guildId/schedules` | List or create scheduled messages |
+| GET, PATCH, DELETE | `/api/guilds/:guildId/schedules/:id` | The next send time is recalculated on every save |
+| POST | `/api/guilds/:guildId/schedules/:id/send` | Send now, over Discord's API, without changing the schedule |
 | GET | `/api/guilds/:guildId/activity?type=&cursor=&limit=` | Newest first; pass `nextCursor` back as `cursor` |
 | GET | `/api/stats?guildId=&days=7` | Daily counts by event type, plus top commands |
 
@@ -87,7 +91,19 @@ curl -X POST http://localhost:3000/api/guilds/$GUILD_ID/commands \
        "content":"Be kind, {user}.","embed":null,"ephemeral":false,"enabled":true}'
 ```
 
-Messages support the placeholders `{user}`, `{user.name}`, `{server}`, `{memberCount}` and `{channel}`.
+Messages support the placeholders `{user}`, `{user.name}`, `{server}`, `{memberCount}` and `{channel}`. Scheduled messages have no triggering member, so they only support `{server}`, `{memberCount}` and `{channel}`.
+
+A scheduled message's `schedule` takes one of these forms. Times are wall-clock times in the message's `timezone`, an IANA name such as `Europe/London`:
+
+```text
+{ "type": "once", "at": "2026-12-31T20:00" }
+{ "type": "daily", "time": "09:00" }
+{ "type": "weekly", "time": "09:00", "days": [1, 5] }
+{ "type": "monthly", "time": "18:00", "day": "last" }
+{ "type": "cron", "expression": "0 */6 * * *" }
+```
+
+For weekly schedules, `days` counts from 0 for Sunday. For monthly schedules, `day` is a number from 1 to 28, or `"last"`. Custom cron uses five fields and must run at least 5 minutes apart.
 
 ## Deploying
 
@@ -102,12 +118,17 @@ Messages support the placeholders `{user}`, `{user.name}`, `{server}`, `{memberC
 - **Neon compute**: while the bot runs, its LISTEN connection and 30-second heartbeat keep the Neon compute awake, so it never scales to zero.
 - **Activity retention**: activity is kept for 30 days.
 - **Removed servers**: servers the bot leaves keep their settings, which come back if it's re-added.
+- **Scheduled message timing**:
+  - The bot checks for due messages every 15 seconds.
+  - A run that's more than 2 minutes late, usually because the bot was offline, is skipped and logged as missed. Missed messages are never sent late.
+  - Each run is claimed in a database transaction before it's sent, so a message can't go out twice, even with two bot processes running.
+- **Scheduled message pings**: scheduled messages never ping anyone, even if they contain `@everyone` or a role mention.
 
 ## Code map
 
-- `bot/`: the discord.js process: event handlers, config cache, LISTEN client, heartbeat.
+- `bot/`: the discord.js process: event handlers, config cache, LISTEN client, heartbeat and scheduler.
 - `src/db/schema.ts`: Drizzle schema. `drizzle/` holds the generated migrations.
 - `src/routes/api/`: the REST API. Auth is enforced for all of `/api` by `src/routes/api/route.ts`.
 - `src/routes/dashboard/`: the dashboard, client-rendered (`ssr: false`).
-- `src/lib/`: code shared by the bot and the web app, such as schemas, templates, matching and the API client.
+- `src/lib/`: code shared by the bot and the web app, such as schemas, templates, matching, scheduling (`schedule.ts`) and the API client.
 - `src/styles.css`: theme tokens, dark only.
