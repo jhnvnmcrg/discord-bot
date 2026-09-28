@@ -2,8 +2,13 @@ import { db } from '#/db/index.ts'
 import { activityLog, type Guild } from '#/db/schema.ts'
 import type { SentMessage } from '#/lib/api-types.ts'
 import { MESSAGE_CHANNEL_TYPES } from '#/lib/discord.ts'
-import { buildMessagePayload, withMention } from '#/lib/message-payload.ts'
-import type { SendMessageInput } from '#/lib/schemas.ts'
+import { mentionLabel } from '#/lib/mentions.ts'
+import {
+  buildMessagePayload,
+  buildPingedPayload,
+  type ResolvedPing,
+} from '#/lib/message-payload.ts'
+import { requestedMention, type SendMessageInput } from '#/lib/schemas.ts'
 
 import {
   DiscordApiError,
@@ -12,6 +17,7 @@ import {
   getMember,
   openDm,
 } from './discord.server'
+import { resolveMentionTarget } from './scheduled.server'
 
 // Discord's JSON error code when a user doesn't accept DMs from the bot.
 const CANNOT_DM = 'Cannot send messages to this user'
@@ -35,29 +41,30 @@ export async function sendMessageNow(
     .slice(0, 100)
 
   if (input.target.type === 'channel') {
-    const { channelId, mentionUserId } = input.target
+    const { channelId } = input.target
     const channel = await getChannel(channelId)
     const types: readonly number[] = MESSAGE_CHANNEL_TYPES
     if (channel.guild_id !== guild.id || !types.includes(channel.type)) {
       throw new DiscordApiError(400, 'That channel is not a text channel in this server.')
     }
-    const mentioned = mentionUserId ? await getMember(guild.id, mentionUserId) : undefined
-    if (mentionUserId && !mentioned) {
-      throw new DiscordApiError(400, 'The member to mention is not in this server.')
-    }
-
-    const payload = buildMessagePayload(input, {
-      server: guild.name,
-      memberCount: String(guild.memberCount),
-      channel: `<#${channelId}>`,
-      ...(mentioned
-        ? { user: `<@${mentioned.id}>`, 'user.name': mentioned.displayName }
-        : {}),
-    })
+    // The requested ping is checked against the server before anything is sent.
+    const target = await resolveMentionTarget(guild.id, requestedMention(input.target) ?? null)
+    // Just checked, so a member or role here exists.
+    const ping: ResolvedPing | undefined =
+      target?.type === 'member'
+        ? { type: 'member', id: target.id, displayName: target.displayName, present: true }
+        : target?.type === 'role'
+          ? { type: 'role', id: target.id, name: target.name, present: true }
+          : (target ?? undefined)
+    const { payload, allowedMentions } = buildPingedPayload(
+      input,
+      { server: guild.name, memberCount: String(guild.memberCount), channel: `<#${channelId}>` },
+      ping,
+    )
     const message = await discordPost<{ id: string }>(`/channels/${channelId}/messages`, {
-      ...(mentioned ? withMention(payload, input, mentioned.id) : payload),
-      // Only the chosen member is pinged; @everyone and other mentions stay text.
-      allowed_mentions: mentioned ? { users: [mentioned.id] } : { parse: [] },
+      ...payload,
+      // Only the chosen ping goes through; @everyone and other mentions stay text.
+      allowed_mentions: allowedMentions,
     })
     const url = `https://discord.com/channels/${guild.id}/${channelId}/${message.id}`
     await db.insert(activityLog).values({
@@ -65,12 +72,12 @@ export async function sendMessageNow(
       type: 'message',
       name: preview,
       channelId,
-      userId: mentioned?.id,
+      userId: target?.type === 'member' ? target.id : undefined,
       metadata: {
         target: 'channel',
         url,
         sentBy,
-        ...(mentioned ? { mentioned: mentioned.username } : {}),
+        ...(target ? { mentioned: mentionLabel(target).slice(1), pingType: target.type } : {}),
       },
     })
     return { url }

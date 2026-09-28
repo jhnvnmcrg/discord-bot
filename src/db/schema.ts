@@ -47,6 +47,16 @@ export type MentionSnapshot = {
   avatarUrl: string
 }
 
+/**
+ * Who a scheduled message pings. Member entries saved before roles and
+ * @everyone were supported have no `type`; see asMentionTarget().
+ */
+export type MentionTarget =
+  | ({ type: 'member' } & MentionSnapshot)
+  | { type: 'role'; id: string; name: string }
+  | { type: 'everyone' }
+  | { type: 'here' }
+
 export type CommandEmbed = {
   title?: string
   description?: string
@@ -160,8 +170,8 @@ export const scheduledMessages = pgTable(
     responseType: responseType('response_type').notNull().default('text'),
     content: text().notNull().default(''),
     embed: jsonb().$type<CommandEmbed>(),
-    /** Member pinged by the message, as they were when it was saved. */
-    mention: jsonb().$type<MentionSnapshot>(),
+    /** Who the message pings, as saved: a member, a role, @everyone or @here. */
+    mention: jsonb().$type<MentionTarget | MentionSnapshot>(),
     enabled: boolean().notNull().default(true),
     /** Null when nothing is due: disabled, or a one-time message already sent. */
     nextRunAt: timestamp('next_run_at', { withTimezone: true }),

@@ -9,6 +9,16 @@ import { ChannelSelect } from '#/components/channel-select'
 import { DiscordMessage } from '#/components/discord-message'
 import { MemberPicker } from '#/components/member-picker'
 import { PageHeader } from '#/components/page-header'
+import {
+  NO_PING,
+  PingPicker,
+  type PingType,
+  type PingValue,
+  pingNote,
+  pingPlaceholderKeys,
+  pingPreviewText,
+  toMentionInput,
+} from '#/components/ping-picker'
 import { fieldErrors, PlaceholderPicker } from '#/components/placeholder-picker'
 import { Button } from '#/components/ui/button'
 import { Card, CardContent } from '#/components/ui/card'
@@ -34,7 +44,7 @@ import { Textarea } from '#/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { errorMessage, queries, useSendMessage } from '#/lib/api'
 import type { MemberOption } from '#/lib/api-types'
-import { mentionGoesFirst } from '#/lib/message-payload'
+import { pingGoesFirst } from '#/lib/message-payload'
 import { formatRelative } from '#/lib/schedule-format'
 import { type SendMessageInput, sendMessageInput } from '#/lib/schemas'
 import type { PlaceholderKey } from '#/lib/templates'
@@ -47,8 +57,8 @@ export const Route = createFileRoute('/dashboard/$guildId/send')({
 type FormValues = {
   targetType: 'channel' | 'dm'
   channelId: string
-  /** Optional member to ping in a channel message. */
-  mentionUserId: string
+  /** Who a channel message pings; DMs never ping. */
+  ping: PingValue
   userId: string
   responseType: 'text' | 'embed'
   content: string
@@ -58,7 +68,7 @@ type FormValues = {
 const EMPTY: FormValues = {
   targetType: 'channel',
   channelId: '',
-  mentionUserId: '',
+  ping: NO_PING,
   userId: '',
   responseType: 'text',
   content: '',
@@ -67,12 +77,10 @@ const EMPTY: FormValues = {
 
 function placeholderKeys(
   targetType: FormValues['targetType'],
-  mentioning: boolean,
+  pingType: PingType,
 ): PlaceholderKey[] {
   if (targetType === 'dm') return ['user', 'user.name', 'server', 'memberCount']
-  return mentioning
-    ? ['user', 'user.name', 'server', 'memberCount', 'channel']
-    : ['server', 'memberCount', 'channel']
+  return [...pingPlaceholderKeys(pingType), 'server', 'memberCount', 'channel']
 }
 
 function toInput(values: FormValues): SendMessageInput {
@@ -82,7 +90,7 @@ function toInput(values: FormValues): SendMessageInput {
         ? {
             type: 'channel',
             channelId: values.channelId,
-            mentionUserId: values.mentionUserId || undefined,
+            mention: toMentionInput(values.ping) ?? undefined,
           }
         : { type: 'dm', userId: values.userId },
     responseType: values.responseType,
@@ -98,6 +106,8 @@ function Composer({ guildId }: { guildId: string }) {
   const { data: status } = useQuery(queries.status())
   const [member, setMember] = useState<MemberOption | undefined>()
   const [mention, setMention] = useState<MemberOption | undefined>()
+  const [pingType, setPingType] = useState<PingType>('none')
+  const roles = useQuery({ ...queries.roles(guildId), enabled: pingType === 'role' })
 
   const channelName = (id: string) => channels.data?.find((c) => c.id === id)?.name
 
@@ -109,7 +119,12 @@ function Composer({ guildId }: { guildId: string }) {
         if (result.success) return undefined
         const fields: Record<string, string> = {}
         for (const issue of result.error.issues) {
-          const key = issue.path[0] === 'target' ? String(issue.path[1]) : issue.path.join('.')
+          const key =
+            issue.path[0] !== 'target'
+              ? issue.path.join('.')
+              : issue.path[1] === 'mention'
+                ? 'ping'
+                : String(issue.path[1])
           fields[key] ??= issue.message
         }
         return { fields }
@@ -123,20 +138,23 @@ function Composer({ guildId }: { guildId: string }) {
       try {
         const sent = await send.mutateAsync(toInput(value))
         const pinged =
-          value.targetType === 'channel' && mention ? ` and pinged ${mention.displayName}` : ''
+          value.targetType === 'channel' && value.ping.type !== 'none'
+            ? ` and pinged ${pingPreviewText(value.ping, mention, roles.data)}`
+            : ''
         toast.success(`Sent to ${to}${pinged}`, {
           action: sent.url
             ? { label: 'Open in Discord', onClick: () => window.open(sent.url ?? '', '_blank') }
             : undefined,
         })
-        // Keep where it went; clear the message and the one-off mention.
+        // Keep where it went; clear the message and the one-off ping.
         formApi.reset({
           ...value,
-          mentionUserId: '',
+          ping: NO_PING,
           content: '',
           embed: { ...value.embed, title: '', description: '' },
         })
         setMention(undefined)
+        setPingType('none')
       } catch (error) {
         toast.error(errorMessage(error))
       }
@@ -198,28 +216,32 @@ function Composer({ guildId }: { guildId: string }) {
                       )
                     }}
                   </form.Field>
-                  <form.Field name="mentionUserId">
+                  <form.Field name="ping">
                     {(field) => {
                       const { invalid, errors } = fieldErrors(field.state.meta)
                       return (
                         <Field data-invalid={invalid || undefined}>
-                          <FieldLabel htmlFor="send-mention">
-                            Mention a member
-                            <span className="font-normal text-muted-foreground">(optional)</span>
-                          </FieldLabel>
-                          <MemberPicker
-                            id="send-mention"
-                            guildId={guildId}
-                            value={mention}
-                            onChange={(next) => {
-                              setMention(next)
-                              field.handleChange(next?.id ?? '')
-                            }}
-                            invalid={invalid}
-                          />
+                          <FieldLabel htmlFor="send-ping">Ping</FieldLabel>
+                          <form.Subscribe selector={(state) => state.values.channelId}>
+                            {(channelId) => (
+                              <PingPicker
+                                id="send-ping"
+                                guildId={guildId}
+                                value={field.state.value}
+                                onChange={(next) => {
+                                  field.handleChange(next)
+                                  setPingType(next.type)
+                                }}
+                                member={mention}
+                                onMemberChange={setMention}
+                                channel={channels.data?.find((c) => c.id === channelId)}
+                                invalid={invalid}
+                              />
+                            )}
+                          </form.Subscribe>
                           <FieldDescription>
-                            They get a ping. The mention goes at the start, or
-                            wherever you put <code>{'{user}'}</code> in a message.
+                            The ping goes at the start, or wherever you put{' '}
+                            <code>{'{ping}'}</code> in a message.
                           </FieldDescription>
                           <FieldError errors={errors} />
                         </Field>
@@ -282,11 +304,11 @@ function Composer({ guildId }: { guildId: string }) {
                 [
                   state.values.responseType,
                   state.values.targetType,
-                  state.values.mentionUserId !== '',
+                  state.values.ping.type,
                 ] as const
               }
             >
-              {([responseType, targetType, mentioning]) =>
+              {([responseType, targetType, currentPing]) =>
                 responseType === 'text' ? (
                   <form.Field name="content">
                     {(field) => {
@@ -304,7 +326,7 @@ function Composer({ guildId }: { guildId: string }) {
                             aria-invalid={invalid || undefined}
                           />
                           <PlaceholderPicker
-                            keys={placeholderKeys(targetType, mentioning)}
+                            keys={placeholderKeys(targetType, currentPing)}
                             onInsert={(token) => field.handleChange(field.state.value + token)}
                           />
                           <FieldError errors={errors} />
@@ -344,7 +366,7 @@ function Composer({ guildId }: { guildId: string }) {
                             onChange={(e) => field.handleChange(e.target.value)}
                           />
                           <PlaceholderPicker
-                            keys={placeholderKeys(targetType, mentioning)}
+                            keys={placeholderKeys(targetType, currentPing)}
                             onInsert={(token) => field.handleChange(field.state.value + token)}
                           />
                         </Field>
@@ -405,11 +427,10 @@ function Composer({ guildId }: { guildId: string }) {
             <form.Subscribe selector={(state) => state.values}>
               {(values) => {
                 const person = values.targetType === 'channel' ? mention : member
-                // Mirror the server: the mention goes first unless {user} places it.
+                const ping = values.targetType === 'channel' ? values.ping : NO_PING
+                // Mirror the server: the ping goes first unless {ping} (or {user}) places it.
                 const prefix =
-                  values.targetType === 'channel' && mention && mentionGoesFirst(values)
-                    ? '{user} '
-                    : ''
+                  ping.type !== 'none' && pingGoesFirst(values, ping.type) ? '{ping} ' : ''
                 const text = values.content || 'Your message appears here.'
                 return (
                 <DiscordMessage
@@ -422,6 +443,7 @@ function Composer({ guildId }: { guildId: string }) {
                   }
                   embed={values.responseType === 'embed' ? values.embed : undefined}
                   vars={{
+                    ping: pingPreviewText(ping, mention, roles.data),
                     user: `@${person?.displayName ?? 'alex'}`,
                     'user.name': person?.displayName ?? 'alex',
                     server: guild?.name ?? 'your server',
@@ -434,12 +456,14 @@ function Composer({ guildId }: { guildId: string }) {
                 )
               }}
             </form.Subscribe>
-            <form.Subscribe selector={(state) => state.values.targetType}>
-              {(targetType) => (
+            <form.Subscribe
+              selector={(state) => [state.values.targetType, state.values.ping] as const}
+            >
+              {([targetType, ping]) => (
                 <p className="text-xs text-muted-foreground">
-                  {targetType === 'channel' && mention
-                    ? `Only ${mention.displayName} gets a ping. @everyone and other mentions show as text.`
-                    : "Sent as the bot. Mentions like @everyone show as text and don't ping anyone."}
+                  {targetType === 'channel'
+                    ? pingNote(ping, mention, roles.data)
+                    : "DMs never ping. Mentions like @everyone show as text."}
                 </p>
               )}
             </form.Subscribe>
@@ -485,7 +509,7 @@ function RecentSends({ guildId }: { guildId: string }) {
                   meta.target === 'dm'
                     ? `DM to @${String(meta.username ?? 'member')}`
                     : meta.mentioned
-                      ? `#${channel ?? 'channel'}, mentioning @${String(meta.mentioned)}`
+                      ? `#${channel ?? 'channel'}, pinging @${String(meta.mentioned)}`
                       : `#${channel ?? 'channel'}`
                 return (
                   <TableRow key={entry.id}>

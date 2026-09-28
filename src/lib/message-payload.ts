@@ -39,50 +39,81 @@ export function buildMessagePayload(
   return { content: renderTemplate(reply.content, vars).slice(0, 2000) }
 }
 
-/**
- * Whether a member mention has to be added in front of the message: always
- * for embeds (mentions inside embeds never ping), and for text that doesn't
- * place {user} itself.
- */
-export function mentionGoesFirst(reply: StoredReply) {
-  return reply.responseType === 'embed' || !reply.content.includes('{user}')
+// Pings. Discord only pings what `allowed_mentions` lists, so a message can
+// contain "@everyone" or other mentions as plain text while pinging exactly
+// one chosen target.
+
+/** A ping resolved at send time; members and roles say whether they still exist. */
+export type ResolvedPing =
+  | { type: 'member'; id: string; displayName: string; present: boolean }
+  | { type: 'role'; id: string; name: string; present: boolean }
+  | { type: 'everyone' }
+  | { type: 'here' }
+
+export type PingType = ResolvedPing['type']
+
+export type AllowedMentions = {
+  parse: 'everyone'[]
+  users: string[]
+  roles: string[]
 }
 
-/** Adds a pinging mention of `userId` to the message's content. */
-export function withMention(
-  payload: MessagePayload,
+export const NO_PINGS: AllowedMentions = { parse: [], users: [], roles: [] }
+
+/** Live mention markup, or the name as plain text once the member or role is gone. */
+export function pingText(ping: ResolvedPing) {
+  switch (ping.type) {
+    case 'member':
+      return ping.present ? `<@${ping.id}>` : `@${ping.displayName}`
+    case 'role':
+      return ping.present ? `<@&${ping.id}>` : `@${ping.name}`
+    case 'everyone':
+      return '@everyone'
+    case 'here':
+      return '@here'
+  }
+}
+
+function isLive(ping: ResolvedPing) {
+  return ping.type === 'everyone' || ping.type === 'here' || ping.present
+}
+
+/**
+ * Whether the ping is added in front of the message: always for embeds
+ * (mentions inside embeds never ping), and for text that doesn't place it
+ * with {ping} (or {user}, for a member).
+ */
+export function pingGoesFirst(reply: StoredReply, type: PingType) {
+  if (reply.responseType === 'embed') return true
+  if (reply.content.includes('{ping}')) return false
+  return !(type === 'member' && reply.content.includes('{user}'))
+}
+
+/** Builds the message and the allowed_mentions that let only `ping` through. */
+export function buildPingedPayload(
   reply: StoredReply,
-  userId: string,
-): MessagePayload {
-  if (!mentionGoesFirst(reply)) return payload
-  const mention = `<@${userId}>`
-  const content = payload.content ? `${mention} ${payload.content}` : mention
-  return { ...payload, content: content.slice(0, 2000) }
-}
+  vars: TemplateVars,
+  ping?: ResolvedPing,
+): { payload: MessagePayload; allowedMentions: AllowedMentions } {
+  if (!ping) return { payload: buildMessagePayload(reply, vars), allowedMentions: NO_PINGS }
 
-/**
- * A scheduled message, ready to post. Nothing pings unless a member to
- * mention is given and still in the server (`present`), and then only that
- * member (`pingUserIds`). A member who left is named as plain text.
- */
-export function buildScheduledPayload(
-  row: StoredReply & { channelId: string },
-  vars: { server: string; memberCount: string },
-  mention?: { id: string; displayName: string; present: boolean },
-) {
-  const pinging = mention?.present ? mention : undefined
-  const base = buildMessagePayload(row, {
+  const text = pingText(ping)
+  const base = buildMessagePayload(reply, {
     ...vars,
-    channel: `<#${row.channelId}>`,
-    ...(mention
-      ? {
-          user: pinging ? `<@${mention.id}>` : `@${mention.displayName}`,
-          'user.name': mention.displayName,
-        }
-      : {}),
+    ping: text,
+    ...(ping.type === 'member' ? { user: text, 'user.name': ping.displayName } : {}),
   })
+  const live = isLive(ping)
+  const payload =
+    live && pingGoesFirst(reply, ping.type)
+      ? { ...base, content: (base.content ? `${text} ${base.content}` : text).slice(0, 2000) }
+      : base
   return {
-    payload: pinging ? withMention(base, row, pinging.id) : base,
-    pingUserIds: pinging ? [pinging.id] : [],
+    payload,
+    allowedMentions: {
+      parse: live && (ping.type === 'everyone' || ping.type === 'here') ? ['everyone'] : [],
+      users: live && ping.type === 'member' ? [ping.id] : [],
+      roles: live && ping.type === 'role' ? [ping.id] : [],
+    },
   }
 }

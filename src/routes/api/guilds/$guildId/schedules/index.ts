@@ -3,7 +3,7 @@ import { asc, count, eq } from 'drizzle-orm'
 
 import { db } from '#/db/index.ts'
 import { scheduledMessages } from '#/db/schema.ts'
-import { scheduledMessageInput } from '#/lib/schemas'
+import { requestedMention, scheduledMessageInput } from '#/lib/schemas'
 import { DiscordApiError } from '#/server/discord.server'
 import {
   fail,
@@ -17,7 +17,7 @@ import {
   isPastOneTime,
   MAX_SCHEDULES_PER_GUILD,
   planNextRun,
-  resolveMention,
+  resolveMentionTarget,
 } from '#/server/scheduled.server'
 
 export const Route = createFileRoute('/api/guilds/$guildId/schedules/')({
@@ -54,10 +54,10 @@ export const Route = createFileRoute('/api/guilds/$guildId/schedules/')({
           )
         }
 
-        const { mentionUserId, ...fields } = parsed.data
-        let mention: Awaited<ReturnType<typeof resolveMention>>
+        const { mention: _mention, mentionUserId: _mentionUserId, ...fields } = parsed.data
+        let mention: Awaited<ReturnType<typeof resolveMentionTarget>>
         try {
-          mention = await resolveMention(guildId, mentionUserId)
+          mention = await resolveMentionTarget(guildId, requestedMention(parsed.data))
         } catch (error) {
           if (error instanceof DiscordApiError) {
             return fail(error.status === 400 ? 400 : 502, error.message)

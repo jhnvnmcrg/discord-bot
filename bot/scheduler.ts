@@ -1,9 +1,14 @@
-import type { Client } from 'discord.js'
+import { type Client, type Guild, PermissionFlagsBits } from 'discord.js'
 import { and, asc, eq, inArray, lte } from 'drizzle-orm'
 
 import { db } from '#/db/index.ts'
-import { type ScheduledMessage, scheduledMessages } from '#/db/schema.ts'
-import { buildScheduledPayload } from '#/lib/message-payload.ts'
+import {
+  type MentionTarget,
+  type ScheduledMessage,
+  scheduledMessages,
+} from '#/db/schema.ts'
+import { asMentionTarget } from '#/lib/mentions.ts'
+import { buildPingedPayload, type ResolvedPing } from '#/lib/message-payload.ts'
 import {
   computeNextRun,
   MISSED_AFTER_MS,
@@ -63,44 +68,73 @@ async function claimDue(guildIds: string[], now: Date): Promise<Claimed[]> {
   })
 }
 
+/** A saved ping, checked against the bot's view of the server right now. */
+async function resolvePing(
+  guild: Guild,
+  target: MentionTarget | null,
+): Promise<ResolvedPing | undefined> {
+  if (!target) return undefined
+  if (target.type === 'everyone' || target.type === 'here') return target
+  if (target.type === 'member') {
+    const member = await guild.members.fetch(target.id).catch(() => null)
+    return {
+      type: 'member',
+      id: target.id,
+      displayName: member?.displayName ?? target.displayName,
+      present: !!member,
+    }
+  }
+  const role = guild.roles.cache.get(target.id)
+  return { type: 'role', id: target.id, name: role?.name ?? target.name, present: !!role }
+}
+
+/** Sends the message; returns why Discord will drop the ping, if it will. */
 async function send(client: Client<true>, row: ScheduledMessage) {
   const guild = client.guilds.cache.get(row.guildId)
   const channel = guild?.channels.cache.get(row.channelId)
   if (!guild || !channel?.isSendable()) {
     throw new Error('The channel is missing or the bot cannot post there.')
   }
-  // The chosen member is pinged only while they're still in the server.
-  const member = row.mention
-    ? await guild.members.fetch(row.mention.id).catch(() => null)
-    : null
-  const { payload, pingUserIds } = buildScheduledPayload(
+  const ping = await resolvePing(guild, asMentionTarget(row.mention))
+  const { payload, allowedMentions } = buildPingedPayload(
     row,
-    { server: guild.name, memberCount: String(guild.memberCount) },
-    member
-      ? { id: member.id, displayName: member.displayName, present: true }
-      : row.mention
-        ? { ...row.mention, present: false }
-        : undefined,
+    {
+      server: guild.name,
+      memberCount: String(guild.memberCount),
+      channel: `<#${channel.id}>`,
+    },
+    ping,
   )
-  await channel.send({
-    ...payload,
-    // Nothing else ever pings: no @everyone, @here, roles or other users.
-    allowedMentions: { users: pingUserIds },
-  })
+  // Nothing but the chosen ping can go through: allowedMentions lists only it.
+  await channel.send({ ...payload, allowedMentions })
+
+  // @everyone, @here and unmentionable roles need Mention Everyone in the channel;
+  // without it Discord posts the message but silently skips the ping.
+  const me = guild.members.me
+  const canMentionAll = !!me && !!channel.permissionsFor(me)?.has(PermissionFlagsBits.MentionEveryone)
+  const needsPermission =
+    ping?.type === 'everyone' ||
+    ping?.type === 'here' ||
+    (ping?.type === 'role' && ping.present && !guild.roles.cache.get(ping.id)?.mentionable)
+  return needsPermission && !canMentionAll
+    ? 'Sent, but the ping was skipped: the bot needs "Mention @everyone, @here, and All Roles" in this channel.'
+    : undefined
 }
 
 async function recordResult(
   row: ScheduledMessage,
   now: Date,
   result: 'sent' | 'failed',
-  error?: unknown,
+  /** The error for a failure, or a note on a send (e.g. a skipped ping). */
+  detail?: unknown,
 ) {
   await db
     .update(scheduledMessages)
     .set({
       lastRunAt: now,
       lastResult: result,
-      lastError: error instanceof Error ? error.message : null,
+      lastError:
+        detail instanceof Error ? detail.message : typeof detail === 'string' ? detail : null,
     })
     .where(eq(scheduledMessages.id, row.id))
 }
@@ -131,9 +165,12 @@ async function tick(client: Client<true>) {
       continue
     }
     try {
-      await send(client, row)
-      await recordResult(row, now, 'sent')
-      await logActivity({ ...base, metadata: { status: 'sent', scheduleId: row.id } })
+      const pingSkipped = await send(client, row)
+      await recordResult(row, now, 'sent', pingSkipped)
+      await logActivity({
+        ...base,
+        metadata: { status: 'sent', scheduleId: row.id, ...(pingSkipped ? { pingSkipped: true } : {}) },
+      })
     } catch (error) {
       await recordResult(row, now, 'failed', error).catch(() => {})
       await logError(row.guildId, 'scheduled', error, {

@@ -10,12 +10,13 @@ export const PLACEHOLDERS = [
   { key: 'server', description: 'The server name' },
   { key: 'memberCount', description: 'How many members the server has' },
   { key: 'channel', description: 'Mentions the channel' },
+  { key: 'ping', description: 'Where the ping goes (otherwise at the start)' },
 ] as const
 
 export type PlaceholderKey = (typeof PLACEHOLDERS)[number]['key']
 export type TemplateVars = Partial<Record<PlaceholderKey, string>>
 
-const PLACEHOLDER_PATTERN = /\{(user\.name|user|server|memberCount|channel)\}/g
+const PLACEHOLDER_PATTERN = /\{(user\.name|user|server|memberCount|channel|ping)\}/g
 
 export function renderTemplate(template: string, vars: TemplateVars) {
   return template.replace(

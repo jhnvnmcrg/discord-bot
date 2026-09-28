@@ -146,6 +146,37 @@ export const welcomeInput = z
 
 export type WelcomeInput = z.infer<typeof welcomeInput>
 
+/** Who a message pings: one member, one role, @everyone or @here. */
+export const mentionInput = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('member'),
+    userId: z.string().regex(/^\d{17,20}$/, 'Pick a member'),
+  }),
+  z.object({
+    type: z.literal('role'),
+    roleId: z.string().regex(/^\d{17,20}$/, 'Pick a role'),
+  }),
+  z.object({ type: z.literal('everyone') }),
+  z.object({ type: z.literal('here') }),
+])
+
+export type MentionInput = z.infer<typeof mentionInput>
+
+/**
+ * The ping a request asks for: `mention` wins; `mentionUserId` is the older
+ * member-only form. Undefined means "not specified" (keep what's saved).
+ */
+export function requestedMention(data: {
+  mention?: MentionInput | null
+  mentionUserId?: string | null
+}): MentionInput | null | undefined {
+  if (data.mention !== undefined) return data.mention
+  if (data.mentionUserId !== undefined) {
+    return data.mentionUserId ? { type: 'member', userId: data.mentionUserId } : null
+  }
+  return undefined
+}
+
 const time = z
   .string()
   .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Pick a time')
@@ -192,7 +223,9 @@ export const scheduledMessageFields = z.object({
     .min(1, 'Give it a name')
     .max(100, 'Keep it under 100 characters'),
   channelId: z.string().regex(/^\d{17,20}$/, 'Pick a channel'),
-  /** Optional member to ping each time it sends. */
+  /** Who to ping each time it sends. */
+  mention: mentionInput.nullable().optional(),
+  /** Older member-only form of `mention`. */
   mentionUserId: z
     .string()
     .regex(/^\d{17,20}$/, 'Pick a member')
@@ -229,7 +262,9 @@ export const sendMessageFields = z.object({
     z.object({
       type: z.literal('channel'),
       channelId: z.string().regex(/^\d{17,20}$/, 'Pick a channel'),
-      /** Optional member to ping in the channel message. */
+      /** Optional ping: a member, a role, @everyone or @here. */
+      mention: mentionInput.optional(),
+      /** Older member-only form of `mention`. */
       mentionUserId: z
         .string()
         .regex(/^\d{17,20}$/, 'Pick a member')

@@ -5,7 +5,16 @@ import { toast } from 'sonner'
 
 import { ChannelSelect } from '#/components/channel-select'
 import { DiscordMessage } from '#/components/discord-message'
-import { MemberPicker } from '#/components/member-picker'
+import {
+  fromMentionTarget,
+  PingPicker,
+  type PingType,
+  type PingValue,
+  pingNote,
+  pingPlaceholderKeys,
+  pingPreviewText,
+  toMentionInput,
+} from '#/components/ping-picker'
 import { fieldErrors, PlaceholderPicker } from '#/components/placeholder-picker'
 import { TimezoneSelect } from '#/components/timezone-select'
 import { Button } from '#/components/ui/button'
@@ -40,7 +49,8 @@ import { Textarea } from '#/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { errorMessage, queries, useSaveSchedule } from '#/lib/api'
 import type { MemberOption, ScheduleDto } from '#/lib/api-types'
-import { mentionGoesFirst } from '#/lib/message-payload'
+import { asMentionTarget } from '#/lib/mentions'
+import { pingGoesFirst } from '#/lib/message-payload'
 import {
   computeNextRun,
   nextRuns,
@@ -77,9 +87,11 @@ const MONTH_DAYS = [
 
 // The form keeps every schedule kind's fields at once (so switching kinds
 // doesn't lose input) and converts to the API's tagged union on submit.
-type FormValues = Omit<ScheduledMessageInput, 'schedule' | 'embed' | 'mentionUserId'> & {
-  /** '' when nobody is mentioned. */
-  mentionUserId: string
+type FormValues = Omit<
+  ScheduledMessageInput,
+  'schedule' | 'embed' | 'mention' | 'mentionUserId'
+> & {
+  ping: PingValue
   type: ScheduleType
   at: string
   time: string
@@ -109,8 +121,8 @@ function toSchedule(values: FormValues): Schedule {
 }
 
 function toInput(values: FormValues): ScheduledMessageInput {
-  const { type, at, time, days, day, expression, mentionUserId, ...rest } = values
-  return { ...rest, mentionUserId: mentionUserId || null, schedule: toSchedule(values) }
+  const { type, at, time, days, day, expression, ping, ...rest } = values
+  return { ...rest, mention: toMentionInput(ping), schedule: toSchedule(values) }
 }
 
 /** An hour from now, on the hour, as a datetime-local value. */
@@ -125,7 +137,7 @@ function toFormValues(schedule?: ScheduleDto): FormValues {
   return {
     name: schedule?.name ?? '',
     channelId: schedule?.channelId ?? '',
-    mentionUserId: schedule?.mention?.id ?? '',
+    ping: fromMentionTarget(asMentionTarget(schedule?.mention)),
     type: s?.type ?? 'weekly',
     at: s?.type === 'once' ? s.at : defaultAt(),
     time: s && 'time' in s ? s.time : '09:00',
@@ -146,7 +158,9 @@ function toFormValues(schedule?: ScheduleDto): FormValues {
 
 /** Maps an API issue path onto the flat form's field names. */
 function formFieldFor(path: PropertyKey[]) {
-  return path[0] === 'schedule' ? String(path[1] ?? 'type') : path.join('.')
+  if (path[0] === 'schedule') return String(path[1] ?? 'type')
+  if (path[0] === 'mention') return 'ping'
+  return path.join('.')
 }
 
 function ScheduleForm({
@@ -162,12 +176,19 @@ function ScheduleForm({
   const { data: status } = useQuery(queries.status())
   const { data: guild } = useQuery(queries.guild(guildId))
   const channels = useQuery(queries.channels(guildId))
-  const [mention, setMention] = useState<MemberOption | undefined>(
-    schedule?.mention ?? undefined,
+  const saved = asMentionTarget(schedule?.mention)
+  const [member, setMember] = useState<MemberOption | undefined>(
+    saved?.type === 'member' ? saved : undefined,
   )
-  const placeholderKeys: PlaceholderKey[] = mention
-    ? ['user', 'user.name', 'server', 'memberCount', 'channel']
-    : ['server', 'memberCount', 'channel']
+  // Mirrors the form's ping type so the placeholder buttons follow it.
+  const [pingType, setPingType] = useState<PingType>(fromMentionTarget(saved).type)
+  const roles = useQuery({ ...queries.roles(guildId), enabled: pingType === 'role' })
+  const placeholderKeys: PlaceholderKey[] = [
+    ...pingPlaceholderKeys(pingType),
+    'server',
+    'memberCount',
+    'channel',
+  ]
   const original = schedule ? JSON.stringify([schedule.schedule, schedule.timezone]) : null
 
   const form = useForm({
@@ -283,28 +304,32 @@ function ScheduleForm({
             }}
           </form.Field>
 
-          <form.Field name="mentionUserId">
+          <form.Field name="ping">
             {(field) => {
               const { invalid, errors } = fieldErrors(field.state.meta)
               return (
                 <Field data-invalid={invalid || undefined}>
-                  <FieldLabel htmlFor="mention">
-                    Mention a member
-                    <span className="font-normal text-muted-foreground">(optional)</span>
-                  </FieldLabel>
-                  <MemberPicker
-                    id="mention"
-                    guildId={guildId}
-                    value={mention}
-                    onChange={(next) => {
-                      setMention(next)
-                      field.handleChange(next?.id ?? '')
-                    }}
-                    invalid={invalid}
-                  />
+                  <FieldLabel htmlFor="ping">Ping</FieldLabel>
+                  <form.Subscribe selector={(state) => state.values.channelId}>
+                    {(channelId) => (
+                      <PingPicker
+                        id="ping"
+                        guildId={guildId}
+                        value={field.state.value}
+                        onChange={(next) => {
+                          field.handleChange(next)
+                          setPingType(next.type)
+                        }}
+                        member={member}
+                        onMemberChange={setMember}
+                        channel={channels.data?.find((c) => c.id === channelId)}
+                        invalid={invalid}
+                      />
+                    )}
+                  </form.Subscribe>
                   <FieldDescription>
-                    They get a ping each time it sends. The mention goes at the
-                    start, or wherever you put <code>{'{user}'}</code> in a message.
+                    Each time it sends. The ping goes at the start, or wherever you
+                    put <code>{'{ping}'}</code> in a message.
                   </FieldDescription>
                   <FieldError errors={errors} />
                 </Field>
@@ -620,8 +645,11 @@ function ScheduleForm({
                 ? nextRuns(schedule, values.timezone, 3)
                 : []
               const channelName = channels.data?.find((c) => c.id === values.channelId)?.name
-              // Mirror the bot: the mention goes first unless {user} places it.
-              const prefix = mention && mentionGoesFirst(values) ? '{user} ' : ''
+              // Mirror the bot: the ping goes first unless {ping} (or {user}) places it.
+              const prefix =
+                values.ping.type !== 'none' && pingGoesFirst(values, values.ping.type)
+                  ? '{ping} '
+                  : ''
               return (
                 <>
                   <div className="flex flex-col gap-2">
@@ -650,17 +678,16 @@ function ScheduleForm({
                       }
                       embed={values.responseType === 'embed' ? values.embed : undefined}
                       vars={{
-                        user: `@${mention?.displayName ?? 'member'}`,
-                        'user.name': mention?.displayName ?? 'member',
+                        ping: pingPreviewText(values.ping, member, roles.data),
+                        user: `@${member?.displayName ?? 'member'}`,
+                        'user.name': member?.displayName ?? 'member',
                         server: guild?.name ?? 'your server',
                         memberCount: guild ? String(guild.memberCount) : '128',
                         channel: channelName ? `#${channelName}` : '#channel',
                       }}
                     />
                     <p className="text-xs text-muted-foreground">
-                      {mention
-                        ? `Only ${mention.displayName} gets a ping. @everyone and other mentions show as text.`
-                        : 'Nobody gets a ping. @everyone and mentions show as text.'}
+                      {pingNote(values.ping, member, roles.data)}
                     </p>
                   </div>
                 </>
