@@ -60,7 +60,7 @@ npm run dev    # dashboard + API on http://localhost:3000
 npm run bot    # the bot, restarts on file changes
 ```
 
-Open the dashboard and use **Add to a server** to invite the bot. The invite asks for View Channels, Send Messages, Embed Links, Read Message History and Manage Roles.
+Open the dashboard and use **Add to a server** to invite the bot. The invite asks for View Channels, Send Messages, Embed Links, Read Message History, Mention @everyone, @here, and All Roles (only used when a message is set to ping), and Manage Roles.
 
 ## REST API
 
@@ -112,22 +112,38 @@ A scheduled message's `schedule` takes one of these forms. Times are wall-clock 
 
 For weekly schedules, `days` counts from 0 for Sunday. For monthly schedules, `day` is a number from 1 to 28, or `"last"`. Custom cron uses five fields and must run at least 5 minutes apart.
 
-To ping a member each time the message sends, pass `"mentionUserId": "…"`. Pass `null` to stop pinging them. The member must be in the server when you save.
+To ping someone each time the message sends, pass `mention`, and pass `null` to stop:
+
+```text
+{ "type": "member", "userId": "…" } | { "type": "role", "roleId": "…" } | { "type": "everyone" } | { "type": "here" }
+```
+
+The member or role must exist in the server when you save. The older `"mentionUserId": "…"` still works for pinging a member.
+
+## Pings
+
+Every message the dashboard sends can ping one thing: a member, a role, `@here` or `@everyone`. Choose it under **Ping** in the scheduled-message editor or on Send a message.
+
+- **Placement**: the ping goes where you put `{ping}` in the text (or `{user}`, for a member), otherwise at the start. For embeds it goes above the embed, because mentions inside embeds don't ping.
+- **Nothing else pings**: Discord only pings what the bot lists as allowed, so `@everyone`, role or member mentions typed into the text stay plain text. A message set to ping one role won't ping anyone else.
+- **Permission**: `@everyone`, `@here` and roles without "Allow anyone to @mention this role" need the bot to have **Mention @everyone, @here, and All Roles** in the channel.
+  - Without it, Discord posts the message but drops the ping.
+  - The dashboard warns you when you pick a channel where this would happen.
+  - A scheduled run whose ping was dropped shows **Sent, no ping** in the list.
+  - Bots invited before this permission was added need it granted on their role in Server Settings.
+- **Gone members and roles**: a member who has left, or a role that was deleted, is named as plain text, and the message still sends.
 
 ## Sending messages from the dashboard
 
 **Send a message** posts right away as the bot, through Discord's API, so it works even while the bot process is offline. The body is:
 
 ```text
-{ "target": { "type": "channel", "channelId": "…", "mentionUserId"?: "…" } | { "type": "dm", "userId": "…" },
+{ "target": { "type": "channel", "channelId": "…", "mention"?: <see Pings> } | { "type": "dm", "userId": "…" },
   "responseType": "text" | "embed", "content": "…", "embed": { "title", "description", "color" } | null }
 ```
 
 - **Targets are checked against the server first**: the channel must be a text or announcement channel in this server, and a DM recipient must be a member of it.
-- **Mentioning a member**: a channel message can optionally mention one member, who gets pinged.
-  - The mention goes where you put `{user}` in the text, otherwise at the start.
-  - For embeds it goes above the embed, because mentions inside embeds don't ping.
-- **No other pings**: nothing else pings anyone. `@everyone` and other mentions show as plain text.
+- **Pings**: a channel message can ping a member, a role, `@here` or `@everyone`, as described in [Pings](#pings). DMs never ping.
 - **Refused DMs**: a DM fails with a clear message when the member has turned off DMs from server members.
 - **History**: every send is logged in Activity under "Sent from web", with a link to the message for channel posts and the Clerk user who sent it. The page lists the last 10.
 
@@ -169,9 +185,7 @@ How it behaves:
   - The bot checks for due messages every 15 seconds.
   - A run that's more than 2 minutes late, usually because the bot was offline, is skipped and logged as missed. Missed messages are never sent late.
   - Each run is claimed in a database transaction before it's sent, so a message can't go out twice, even with two bot processes running.
-- **Scheduled message pings**: only the member you choose to mention is pinged, and nothing else ever is, including `@everyone`, roles and other mentions.
-  - The mention goes where `{user}` is, otherwise at the start of the message.
-  - If the member has left the server, the message still sends, naming them as plain text.
+- **Scheduled message pings**: see [Pings](#pings). Only the one ping you choose can go through.
 
 ## Code map
 

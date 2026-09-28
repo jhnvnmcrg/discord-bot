@@ -56,6 +56,7 @@ import {
   useUpdateSchedule,
 } from '#/lib/api'
 import type { ScheduleDto } from '#/lib/api-types'
+import { asMentionTarget, mentionLabel } from '#/lib/mentions'
 import {
   describeSchedule,
   formatInZone,
@@ -92,7 +93,7 @@ function LastResult({ schedule }: { schedule: ScheduleDto }) {
     return <span className="text-muted-foreground">Not sent yet</span>
   }
   const when = formatRelative(schedule.lastRunAt)
-  if (schedule.lastResult === 'sent') {
+  if (schedule.lastResult === 'sent' && !schedule.lastError) {
     return (
       <span className="flex flex-col items-start gap-0.5">
         <Badge variant="secondary">Sent</Badge>
@@ -105,15 +106,19 @@ function LastResult({ schedule }: { schedule: ScheduleDto }) {
       <TooltipTrigger asChild>
         <span className="flex cursor-default flex-col items-start gap-0.5">
           <Badge variant={schedule.lastResult === 'failed' ? 'destructive' : 'outline'}>
-            {schedule.lastResult === 'failed' ? 'Failed' : 'Missed'}
+            {schedule.lastResult === 'failed'
+              ? 'Failed'
+              : schedule.lastResult === 'sent'
+                ? 'Sent, no ping'
+                : 'Missed'}
           </Badge>
           <span className="text-xs text-muted-foreground">{when}</span>
         </span>
       </TooltipTrigger>
       <TooltipContent className="max-w-xs">
-        {schedule.lastResult === 'failed'
-          ? (schedule.lastError ?? 'Discord rejected the message.')
-          : 'The bot was offline when this was due, so it was skipped.'}
+        {schedule.lastResult === 'missed'
+          ? 'The bot was offline when this was due, so it was skipped.'
+          : (schedule.lastError ?? 'Discord rejected the message.')}
       </TooltipContent>
     </Tooltip>
   )
@@ -204,7 +209,7 @@ function SchedulesPage() {
                       </span>
                       {schedule.mention ? (
                         <span className="w-full truncate text-xs text-muted-foreground">
-                          Pings @{schedule.mention.displayName}
+                          Pings {mentionLabel(asMentionTarget(schedule.mention) ?? { type: 'here' })}
                         </span>
                       ) : null}
                     </button>

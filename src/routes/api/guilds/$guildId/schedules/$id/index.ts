@@ -3,7 +3,12 @@ import { and, eq } from 'drizzle-orm'
 
 import { db } from '#/db/index.ts'
 import { scheduledMessages } from '#/db/schema.ts'
-import { scheduledMessageFields, scheduledMessageInput } from '#/lib/schemas'
+import { asMentionTarget } from '#/lib/mentions'
+import {
+  requestedMention,
+  scheduledMessageFields,
+  scheduledMessageInput,
+} from '#/lib/schemas'
 import { DiscordApiError } from '#/server/discord.server'
 import {
   fail,
@@ -16,7 +21,7 @@ import {
 import {
   isPastOneTime,
   planNextRun,
-  resolveMention,
+  resolveMentionTarget,
 } from '#/server/scheduled.server'
 
 const notFound = () => fail(404, 'That scheduled message does not exist.')
@@ -55,11 +60,9 @@ export const Route = createFileRoute('/api/guilds/$guildId/schedules/$id/')({
           .where(whereSchedule(params.guildId, id))
         if (!existing) return notFound()
 
-        const merged = scheduledMessageInput.safeParse({
-          ...existing,
-          mentionUserId: existing.mention?.id ?? null,
-          ...patch.data,
-        })
+        // The saved mention isn't request-shaped; it's merged separately below.
+        const { mention: savedMention, ...existingFields } = existing
+        const merged = scheduledMessageInput.safeParse({ ...existingFields, ...patch.data })
         if (!merged.success) return invalid(merged.error)
 
         // A sent one-time message can still be edited or toggled; only a
@@ -71,10 +74,14 @@ export const Route = createFileRoute('/api/guilds/$guildId/schedules/$id/')({
           return fail(400, 'That time has already passed. Pick a time in the future.')
         }
 
-        const { mentionUserId, ...fields } = merged.data
-        let mention: Awaited<ReturnType<typeof resolveMention>>
+        const { mention: _mention, mentionUserId: _mentionUserId, ...fields } = merged.data
+        let mention: Awaited<ReturnType<typeof resolveMentionTarget>>
         try {
-          mention = await resolveMention(params.guildId, mentionUserId, existing.mention)
+          mention = await resolveMentionTarget(
+            params.guildId,
+            requestedMention(patch.data),
+            asMentionTarget(savedMention),
+          )
         } catch (error) {
           if (error instanceof DiscordApiError) {
             return fail(error.status === 400 ? 400 : 502, error.message)

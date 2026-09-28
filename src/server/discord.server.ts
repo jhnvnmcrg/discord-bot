@@ -53,12 +53,15 @@ export function getChannel(channelId: string) {
   )
 }
 
+type Overwrite = { id: string; type: 0 | 1; allow: string; deny: string }
+
 type RawChannel = {
   id: string
   name: string
   type: number
   position: number
   parent_id: string | null
+  permission_overwrites?: Overwrite[]
 }
 
 type RawRole = {
@@ -67,12 +70,67 @@ type RawRole = {
   color: number
   position: number
   managed: boolean
+  mentionable: boolean
+  permissions: string
+}
+
+const ADMINISTRATOR = 1n << 3n
+const MENTION_EVERYONE = 1n << 17n
+
+let botUserId: string | undefined
+
+/** The guild's roles plus the bot's own member entry, fetched together. */
+async function rolesAndBot(guildId: string) {
+  botUserId ??= (await discordGet<{ id: string }>('/users/@me')).id
+  const [roles, member] = await Promise.all([
+    discordGet<RawRole[]>(`/guilds/${guildId}/roles`),
+    discordGet<{ roles: string[] }>(`/guilds/${guildId}/members/${botUserId}`),
+  ])
+  return { roles, botRoleIds: new Set(member.roles), botId: botUserId }
+}
+
+/**
+ * The bot's permissions in a channel, following Discord's rules: role
+ * permissions (with @everyone), then the channel's @everyone overwrite,
+ * role overwrites and the bot's own member overwrite.
+ */
+function channelPermissions(
+  guildId: string,
+  channel: RawChannel,
+  roles: RawRole[],
+  botRoleIds: Set<string>,
+  botId: string,
+) {
+  let base = 0n
+  for (const role of roles) {
+    if (role.id === guildId || botRoleIds.has(role.id)) base |= BigInt(role.permissions)
+  }
+  if (base & ADMINISTRATOR) return ~0n
+
+  const overwrites = channel.permission_overwrites ?? []
+  const everyone = overwrites.find((o) => o.id === guildId)
+  if (everyone) base = (base & ~BigInt(everyone.deny)) | BigInt(everyone.allow)
+  let allow = 0n
+  let deny = 0n
+  for (const o of overwrites) {
+    if (o.type === 0 && o.id !== guildId && botRoleIds.has(o.id)) {
+      allow |= BigInt(o.allow)
+      deny |= BigInt(o.deny)
+    }
+  }
+  base = (base & ~deny) | allow
+  const own = overwrites.find((o) => o.type === 1 && o.id === botId)
+  if (own) base = (base & ~BigInt(own.deny)) | BigInt(own.allow)
+  return base
 }
 
 export async function listMessageChannels(
   guildId: string,
 ): Promise<ChannelOption[]> {
-  const channels = await discordGet<RawChannel[]>(`/guilds/${guildId}/channels`)
+  const [channels, { roles, botRoleIds, botId }] = await Promise.all([
+    discordGet<RawChannel[]>(`/guilds/${guildId}/channels`),
+    rolesAndBot(guildId),
+  ])
   const categories = new Map(
     channels.filter((c) => c.type === 4).map((c) => [c.id, c]),
   )
@@ -91,19 +149,15 @@ export async function listMessageChannels(
       parentName: c.parent_id
         ? (categories.get(c.parent_id)?.name ?? null)
         : null,
+      canMentionEveryone:
+        (channelPermissions(guildId, c, roles, botRoleIds, botId) & MENTION_EVERYONE) !== 0n,
     }))
 }
 
-let botUserId: string | undefined
-
 export async function listRoles(guildId: string): Promise<RoleOption[]> {
-  botUserId ??= (await discordGet<{ id: string }>('/users/@me')).id
-  const [roles, member] = await Promise.all([
-    discordGet<RawRole[]>(`/guilds/${guildId}/roles`),
-    discordGet<{ roles: string[] }>(`/guilds/${guildId}/members/${botUserId}`),
-  ])
+  const { roles, botRoleIds } = await rolesAndBot(guildId)
   const positions = new Map(roles.map((r) => [r.id, r.position]))
-  const botTop = Math.max(0, ...member.roles.map((id) => positions.get(id) ?? 0))
+  const botTop = Math.max(0, ...[...botRoleIds].map((id) => positions.get(id) ?? 0))
 
   return roles
     .filter((r) => !r.managed && r.id !== guildId) // skip bot roles and @everyone
@@ -113,7 +167,15 @@ export async function listRoles(guildId: string): Promise<RoleOption[]> {
       name: r.name,
       color: r.color,
       assignable: r.position < botTop,
+      mentionable: r.mentionable,
     }))
+}
+
+/** A role by id, or undefined if it doesn't exist (any more). */
+export async function getRole(guildId: string, roleId: string) {
+  const roles = await discordGet<RawRole[]>(`/guilds/${guildId}/roles`)
+  const role = roles.find((r) => r.id === roleId && r.id !== guildId)
+  return role ? { id: role.id, name: role.name } : undefined
 }
 
 type RawUser = {

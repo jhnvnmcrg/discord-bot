@@ -61,6 +61,8 @@ export type ChannelOption = {
   name: string
   type: number
   parentName: string | null
+  /** Whether the bot may ping @everyone, @here and unmentionable roles here. */
+  canMentionEveryone: boolean
 }
 
 export type MemberOption = {
@@ -81,6 +83,8 @@ export type RoleOption = {
   color: number
   /** False when the role sits at or above the bot's highest role. */
   assignable: boolean
+  /** "Allow anyone to @mention this role"; otherwise pinging it needs Mention @everyone. */
+  mentionable: boolean
 }
 
 export type StatsDay = { date: string } & Record<ActivityType, number>

@@ -14,6 +14,7 @@ export const SAMPLE_VARS: Required<TemplateVars> = {
   server: 'Night Owls',
   memberCount: '128',
   channel: '#general',
+  ping: '@everyone',
 }
 
 function MessageText({
@@ -28,7 +29,8 @@ function MessageText({
       {tokenizeTemplate(template).map((token, index) => {
         if (token.type === 'text') return token.value
         const value = vars[token.key] ?? `{${token.key}}`
-        const isMention = token.key === 'user' || token.key === 'channel'
+        const isMention =
+          token.key === 'user' || token.key === 'channel' || token.key === 'ping'
         return isMention ? (
           <span
             // biome-ignore lint/suspicious/noArrayIndexKey: tokens have no identity
