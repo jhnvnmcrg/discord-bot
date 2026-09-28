@@ -223,6 +223,11 @@ export const sendMessageFields = z.object({
     z.object({
       type: z.literal('channel'),
       channelId: z.string().regex(/^\d{17,20}$/, 'Pick a channel'),
+      /** Optional member to ping in the channel message. */
+      mentionUserId: z
+        .string()
+        .regex(/^\d{17,20}$/, 'Pick a member')
+        .optional(),
     }),
     z.object({
       type: z.literal('dm'),

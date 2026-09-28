@@ -117,12 +117,15 @@ For weekly schedules, `days` counts from 0 for Sunday. For monthly schedules, `d
 **Send a message** posts right away as the bot, through Discord's API, so it works even while the bot process is offline. The body is:
 
 ```text
-{ "target": { "type": "channel", "channelId": "…" } | { "type": "dm", "userId": "…" },
+{ "target": { "type": "channel", "channelId": "…", "mentionUserId"?: "…" } | { "type": "dm", "userId": "…" },
   "responseType": "text" | "embed", "content": "…", "embed": { "title", "description", "color" } | null }
 ```
 
 - **Targets are checked against the server first**: the channel must be a text or announcement channel in this server, and a DM recipient must be a member of it.
-- **No pings**: nothing pings anyone. `@everyone` and mentions show as plain text.
+- **Mentioning a member**: a channel message can optionally mention one member, who gets pinged.
+  - The mention goes where you put `{user}` in the text, otherwise at the start.
+  - For embeds it goes above the embed, because mentions inside embeds don't ping.
+- **No other pings**: nothing else pings anyone. `@everyone` and other mentions show as plain text.
 - **Refused DMs**: a DM fails with a clear message when the member has turned off DMs from server members.
 - **History**: every send is logged in Activity under "Sent from web", with a link to the message for channel posts and the Clerk user who sent it. The page lists the last 10.
 

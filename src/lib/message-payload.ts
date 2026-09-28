@@ -38,3 +38,24 @@ export function buildMessagePayload(
   }
   return { content: renderTemplate(reply.content, vars).slice(0, 2000) }
 }
+
+/**
+ * Whether a member mention has to be added in front of the message: always
+ * for embeds (mentions inside embeds never ping), and for text that doesn't
+ * place {user} itself.
+ */
+export function mentionGoesFirst(reply: StoredReply) {
+  return reply.responseType === 'embed' || !reply.content.includes('{user}')
+}
+
+/** Adds a pinging mention of `userId` to the message's content. */
+export function withMention(
+  payload: MessagePayload,
+  reply: StoredReply,
+  userId: string,
+): MessagePayload {
+  if (!mentionGoesFirst(reply)) return payload
+  const mention = `<@${userId}>`
+  const content = payload.content ? `${mention} ${payload.content}` : mention
+  return { ...payload, content: content.slice(0, 2000) }
+}
