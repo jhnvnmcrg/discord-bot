@@ -63,6 +63,18 @@ export type ChannelOption = {
   parentName: string | null
 }
 
+export type MemberOption = {
+  id: string
+  username: string
+  displayName: string
+  avatarUrl: string
+}
+
+export type SentMessage = {
+  /** Link to the message in Discord; null for DMs, which only the recipient can open. */
+  url: string | null
+}
+
 export type RoleOption = {
   id: string
   name: string

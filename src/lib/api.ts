@@ -14,11 +14,13 @@ import type {
   ChannelOption,
   CommandDto,
   GuildSummary,
+  MemberOption,
   ReminderDto,
   ReminderSettingsDto,
   ResponderDto,
   RoleOption,
   ScheduleDto,
+  SentMessage,
   StatsResponse,
   WelcomeDto,
 } from './api-types'
@@ -27,6 +29,7 @@ import type {
   ReminderSettingsInput,
   ResponderInput,
   ScheduledMessageInput,
+  SendMessageInput,
   WelcomeInput,
 } from './schemas'
 
@@ -102,6 +105,16 @@ export const queries = {
       queryKey: [...keys.guild(guildId), 'channels'],
       queryFn: () => request<ChannelOption[]>(`/guilds/${guildId}/channels`),
       staleTime: 60_000,
+    }),
+  members: (guildId: string, query: string) =>
+    queryOptions({
+      queryKey: [...keys.guild(guildId), 'members', query],
+      queryFn: () =>
+        request<MemberOption[]>(
+          `/guilds/${guildId}/members?${new URLSearchParams({ query })}`,
+        ),
+      enabled: query.trim().length > 0,
+      staleTime: 30_000,
     }),
   roles: (guildId: string) =>
     queryOptions({
@@ -282,6 +295,14 @@ export function useCancelReminder(guildId: string) {
     (id: number) =>
       request<void>(`/guilds/${guildId}/reminders/${id}`, send('DELETE')),
     [keys.reminders(guildId), keys.guilds],
+  )
+}
+
+export function useSendMessage(guildId: string) {
+  return useInvalidatingMutation(
+    (input: SendMessageInput) =>
+      request<SentMessage>(`/guilds/${guildId}/messages`, send('POST', input)),
+    [keys.activity(guildId), keys.stats],
   )
 }
 

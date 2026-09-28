@@ -37,6 +37,7 @@ const FILTERS = [
   { value: 'member_leave', label: 'Leaves' },
   { value: 'scheduled', label: 'Scheduled' },
   { value: 'reminder', label: 'Reminders' },
+  { value: 'message', label: 'Sent from web' },
   { value: 'error', label: 'Errors' },
 ] as const
 
@@ -47,6 +48,7 @@ const EVENT_LABELS: Record<ActivityType, string> = {
   member_leave: 'Left',
   scheduled: 'Scheduled',
   reminder: 'Reminder',
+  message: 'Sent',
   error: 'Error',
 }
 
@@ -79,6 +81,10 @@ function describe(entry: ActivityDto) {
       return meta.manual ? `Sent "${entry.name}" (Send now)` : `Sent "${entry.name}"`
     case 'reminder':
       return meta.via === 'dm' ? `Reminded by DM: ${entry.name}` : `Reminded: ${entry.name}`
+    case 'message':
+      return meta.target === 'dm'
+        ? `DM from the dashboard: ${entry.name ?? ''}`
+        : `Posted from the dashboard: ${entry.name ?? ''}`
     case 'error':
       return typeof meta.message === 'string' ? meta.message : (entry.name ?? 'Error')
     default:

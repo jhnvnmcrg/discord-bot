@@ -1,8 +1,8 @@
 import { useForm } from '@tanstack/react-form'
 import { useQuery } from '@tanstack/react-query'
-import { HashIcon, MegaphoneIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { ChannelSelect } from '#/components/channel-select'
 import { DiscordMessage } from '#/components/discord-message'
 import { fieldErrors, PlaceholderPicker } from '#/components/placeholder-picker'
 import { TimezoneSelect } from '#/components/timezone-select'
@@ -29,7 +29,6 @@ import {
   SelectContent,
   SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '#/components/ui/select'
@@ -38,7 +37,7 @@ import { Switch } from '#/components/ui/switch'
 import { Textarea } from '#/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { errorMessage, queries, useSaveSchedule } from '#/lib/api'
-import type { ChannelOption, ScheduleDto } from '#/lib/api-types'
+import type { ScheduleDto } from '#/lib/api-types'
 import {
   computeNextRun,
   nextRuns,
@@ -141,48 +140,6 @@ function toFormValues(schedule?: ScheduleDto): FormValues {
 /** Maps an API issue path onto the flat form's field names. */
 function formFieldFor(path: PropertyKey[]) {
   return path[0] === 'schedule' ? String(path[1] ?? 'type') : path.join('.')
-}
-
-function ChannelSelect({
-  channels,
-  value,
-  onChange,
-  invalid,
-}: {
-  channels?: ChannelOption[]
-  value: string
-  onChange: (value: string) => void
-  invalid: boolean
-}) {
-  const groups = new Map<string, ChannelOption[]>()
-  for (const channel of channels ?? []) {
-    const key = channel.parentName ?? ''
-    groups.set(key, [...(groups.get(key) ?? []), channel])
-  }
-  return (
-    <Select
-      value={value}
-      onValueChange={(next) => next && onChange(next)}
-      disabled={!channels}
-    >
-      <SelectTrigger id="channelId" className="w-full" aria-invalid={invalid || undefined}>
-        <SelectValue placeholder={channels ? 'Pick a channel' : 'Loading channels…'} />
-      </SelectTrigger>
-      <SelectContent>
-        {[...groups].map(([category, items]) => (
-          <SelectGroup key={category || 'none'}>
-            {category ? <SelectLabel>{category}</SelectLabel> : null}
-            {items.map((channel) => (
-              <SelectItem key={channel.id} value={channel.id}>
-                {channel.type === 5 ? <MegaphoneIcon /> : <HashIcon />}
-                {channel.name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        ))}
-      </SelectContent>
-    </Select>
-  )
 }
 
 function ScheduleForm({
@@ -293,6 +250,7 @@ function ScheduleForm({
                 <Field data-invalid={invalid || undefined}>
                   <FieldLabel htmlFor="channelId">Channel</FieldLabel>
                   <ChannelSelect
+                    id="channelId"
                     channels={channels.data}
                     value={field.state.value}
                     onChange={(value) => {

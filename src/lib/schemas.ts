@@ -216,3 +216,22 @@ export const reminderSettingsInput = z.object({
 })
 
 export type ReminderSettingsInput = z.infer<typeof reminderSettingsInput>
+
+/** A message sent right away from the dashboard, to a channel or a member's DMs. */
+export const sendMessageFields = z.object({
+  target: z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('channel'),
+      channelId: z.string().regex(/^\d{17,20}$/, 'Pick a channel'),
+    }),
+    z.object({
+      type: z.literal('dm'),
+      userId: z.string().regex(/^\d{17,20}$/, 'Pick a member'),
+    }),
+  ]),
+  ...replyFields,
+})
+
+export const sendMessageInput = sendMessageFields.superRefine(refineReply)
+
+export type SendMessageInput = z.infer<typeof sendMessageInput>
