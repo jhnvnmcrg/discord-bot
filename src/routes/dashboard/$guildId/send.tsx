@@ -34,6 +34,7 @@ import { Textarea } from '#/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { errorMessage, queries, useSendMessage } from '#/lib/api'
 import type { MemberOption } from '#/lib/api-types'
+import { mentionGoesFirst } from '#/lib/message-payload'
 import { formatRelative } from '#/lib/schedule-format'
 import { type SendMessageInput, sendMessageInput } from '#/lib/schemas'
 import type { PlaceholderKey } from '#/lib/templates'
@@ -46,6 +47,8 @@ export const Route = createFileRoute('/dashboard/$guildId/send')({
 type FormValues = {
   targetType: 'channel' | 'dm'
   channelId: string
+  /** Optional member to ping in a channel message. */
+  mentionUserId: string
   userId: string
   responseType: 'text' | 'embed'
   content: string
@@ -55,22 +58,32 @@ type FormValues = {
 const EMPTY: FormValues = {
   targetType: 'channel',
   channelId: '',
+  mentionUserId: '',
   userId: '',
   responseType: 'text',
   content: '',
   embed: { title: '', description: '', color: '#5865f2' },
 }
 
-const PLACEHOLDER_KEYS: Record<FormValues['targetType'], PlaceholderKey[]> = {
-  channel: ['server', 'memberCount', 'channel'],
-  dm: ['user', 'user.name', 'server', 'memberCount'],
+function placeholderKeys(
+  targetType: FormValues['targetType'],
+  mentioning: boolean,
+): PlaceholderKey[] {
+  if (targetType === 'dm') return ['user', 'user.name', 'server', 'memberCount']
+  return mentioning
+    ? ['user', 'user.name', 'server', 'memberCount', 'channel']
+    : ['server', 'memberCount', 'channel']
 }
 
 function toInput(values: FormValues): SendMessageInput {
   return {
     target:
       values.targetType === 'channel'
-        ? { type: 'channel', channelId: values.channelId }
+        ? {
+            type: 'channel',
+            channelId: values.channelId,
+            mentionUserId: values.mentionUserId || undefined,
+          }
         : { type: 'dm', userId: values.userId },
     responseType: values.responseType,
     content: values.content,
@@ -84,6 +97,7 @@ function Composer({ guildId }: { guildId: string }) {
   const { data: guild } = useQuery(queries.guild(guildId))
   const { data: status } = useQuery(queries.status())
   const [member, setMember] = useState<MemberOption | undefined>()
+  const [mention, setMention] = useState<MemberOption | undefined>()
 
   const channelName = (id: string) => channels.data?.find((c) => c.id === id)?.name
 
@@ -108,17 +122,21 @@ function Composer({ guildId }: { guildId: string }) {
           : (member?.displayName ?? 'the member')
       try {
         const sent = await send.mutateAsync(toInput(value))
-        toast.success(`Sent to ${to}`, {
+        const pinged =
+          value.targetType === 'channel' && mention ? ` and pinged ${mention.displayName}` : ''
+        toast.success(`Sent to ${to}${pinged}`, {
           action: sent.url
             ? { label: 'Open in Discord', onClick: () => window.open(sent.url ?? '', '_blank') }
             : undefined,
         })
-        // Keep the target, clear the message.
+        // Keep where it went; clear the message and the one-off mention.
         formApi.reset({
           ...value,
+          mentionUserId: '',
           content: '',
           embed: { ...value.embed, title: '', description: '' },
         })
+        setMention(undefined)
       } catch (error) {
         toast.error(errorMessage(error))
       }
@@ -158,6 +176,7 @@ function Composer({ guildId }: { guildId: string }) {
             <form.Subscribe selector={(state) => state.values.targetType}>
               {(targetType) =>
                 targetType === 'channel' ? (
+                  <>
                   <form.Field name="channelId">
                     {(field) => {
                       const { invalid, errors } = fieldErrors(field.state.meta)
@@ -179,6 +198,35 @@ function Composer({ guildId }: { guildId: string }) {
                       )
                     }}
                   </form.Field>
+                  <form.Field name="mentionUserId">
+                    {(field) => {
+                      const { invalid, errors } = fieldErrors(field.state.meta)
+                      return (
+                        <Field data-invalid={invalid || undefined}>
+                          <FieldLabel htmlFor="send-mention">
+                            Mention a member
+                            <span className="font-normal text-muted-foreground">(optional)</span>
+                          </FieldLabel>
+                          <MemberPicker
+                            id="send-mention"
+                            guildId={guildId}
+                            value={mention}
+                            onChange={(next) => {
+                              setMention(next)
+                              field.handleChange(next?.id ?? '')
+                            }}
+                            invalid={invalid}
+                          />
+                          <FieldDescription>
+                            They get a ping. The mention goes at the start, or
+                            wherever you put <code>{'{user}'}</code> in a message.
+                          </FieldDescription>
+                          <FieldError errors={errors} />
+                        </Field>
+                      )
+                    }}
+                  </form.Field>
+                  </>
                 ) : (
                   <form.Field name="userId">
                     {(field) => {
@@ -230,9 +278,15 @@ function Composer({ guildId }: { guildId: string }) {
             </form.Field>
 
             <form.Subscribe
-              selector={(state) => [state.values.responseType, state.values.targetType] as const}
+              selector={(state) =>
+                [
+                  state.values.responseType,
+                  state.values.targetType,
+                  state.values.mentionUserId !== '',
+                ] as const
+              }
             >
-              {([responseType, targetType]) =>
+              {([responseType, targetType, mentioning]) =>
                 responseType === 'text' ? (
                   <form.Field name="content">
                     {(field) => {
@@ -250,7 +304,7 @@ function Composer({ guildId }: { guildId: string }) {
                             aria-invalid={invalid || undefined}
                           />
                           <PlaceholderPicker
-                            keys={PLACEHOLDER_KEYS[targetType]}
+                            keys={placeholderKeys(targetType, mentioning)}
                             onInsert={(token) => field.handleChange(field.state.value + token)}
                           />
                           <FieldError errors={errors} />
@@ -290,7 +344,7 @@ function Composer({ guildId }: { guildId: string }) {
                             onChange={(e) => field.handleChange(e.target.value)}
                           />
                           <PlaceholderPicker
-                            keys={PLACEHOLDER_KEYS[targetType]}
+                            keys={placeholderKeys(targetType, mentioning)}
                             onInsert={(token) => field.handleChange(field.state.value + token)}
                           />
                         </Field>
@@ -349,15 +403,27 @@ function Composer({ guildId }: { guildId: string }) {
           <div className="flex flex-col gap-2">
             <span className="text-sm font-medium">Preview</span>
             <form.Subscribe selector={(state) => state.values}>
-              {(values) => (
+              {(values) => {
+                const person = values.targetType === 'channel' ? mention : member
+                // Mirror the server: the mention goes first unless {user} places it.
+                const prefix =
+                  values.targetType === 'channel' && mention && mentionGoesFirst(values)
+                    ? '{user} '
+                    : ''
+                const text = values.content || 'Your message appears here.'
+                return (
                 <DiscordMessage
                   author={status?.username ?? 'Your bot'}
                   avatarUrl={status?.avatar ?? undefined}
-                  content={values.responseType === 'text' ? values.content || 'Your message appears here.' : undefined}
+                  content={
+                    values.responseType === 'text'
+                      ? `${prefix}${text}`
+                      : prefix.trim() || undefined
+                  }
                   embed={values.responseType === 'embed' ? values.embed : undefined}
                   vars={{
-                    user: `@${member?.displayName ?? 'alex'}`,
-                    'user.name': member?.displayName ?? 'alex',
+                    user: `@${person?.displayName ?? 'alex'}`,
+                    'user.name': person?.displayName ?? 'alex',
                     server: guild?.name ?? 'your server',
                     memberCount: guild ? String(guild.memberCount) : '128',
                     channel: channelName(values.channelId)
@@ -365,12 +431,18 @@ function Composer({ guildId }: { guildId: string }) {
                       : '#channel',
                   }}
                 />
+                )
+              }}
+            </form.Subscribe>
+            <form.Subscribe selector={(state) => state.values.targetType}>
+              {(targetType) => (
+                <p className="text-xs text-muted-foreground">
+                  {targetType === 'channel' && mention
+                    ? `Only ${mention.displayName} gets a ping. @everyone and other mentions show as text.`
+                    : "Sent as the bot. Mentions like @everyone show as text and don't ping anyone."}
+                </p>
               )}
             </form.Subscribe>
-            <p className="text-xs text-muted-foreground">
-              Sent as the bot. Mentions like @everyone show as text and don't ping
-              anyone.
-            </p>
           </div>
         </form>
       </CardContent>
@@ -412,7 +484,9 @@ function RecentSends({ guildId }: { guildId: string }) {
                 const to =
                   meta.target === 'dm'
                     ? `DM to @${String(meta.username ?? 'member')}`
-                    : `#${channel ?? 'channel'}`
+                    : meta.mentioned
+                      ? `#${channel ?? 'channel'}, mentioning @${String(meta.mentioned)}`
+                      : `#${channel ?? 'channel'}`
                 return (
                   <TableRow key={entry.id}>
                     <TableCell className="pl-4 text-muted-foreground">
