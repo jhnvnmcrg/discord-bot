@@ -10,43 +10,296 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as McpRouteImport } from './routes/mcp'
+import { Route as ApiRouteRouteImport } from './routes/api/route'
+import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
+import { Route as ApiStatsRouteImport } from './routes/api/stats'
+import { Route as ApiStatusRouteImport } from './routes/api/status'
+import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as DashboardGuildIdRouteRouteImport } from './routes/dashboard/$guildId/route'
+import { Route as ApiGuildsIndexRouteImport } from './routes/api/guilds/index'
+import { Route as DashboardGuildIdIndexRouteImport } from './routes/dashboard/$guildId/index'
+import { Route as DashboardGuildIdActivityRouteImport } from './routes/dashboard/$guildId/activity'
+import { Route as DashboardGuildIdCommandsRouteImport } from './routes/dashboard/$guildId/commands'
+import { Route as DashboardGuildIdRespondersRouteImport } from './routes/dashboard/$guildId/responders'
+import { Route as DashboardGuildIdWelcomeRouteImport } from './routes/dashboard/$guildId/welcome'
+import { Route as ApiGuildsGuildIdIndexRouteImport } from './routes/api/guilds/$guildId/index'
+import { Route as ApiGuildsGuildIdActivityRouteImport } from './routes/api/guilds/$guildId/activity'
+import { Route as ApiGuildsGuildIdChannelsRouteImport } from './routes/api/guilds/$guildId/channels'
+import { Route as ApiGuildsGuildIdRolesRouteImport } from './routes/api/guilds/$guildId/roles'
+import { Route as ApiGuildsGuildIdWelcomeRouteImport } from './routes/api/guilds/$guildId/welcome'
+import { Route as ApiGuildsGuildIdCommandsIndexRouteImport } from './routes/api/guilds/$guildId/commands/index'
+import { Route as ApiGuildsGuildIdCommandsIdRouteImport } from './routes/api/guilds/$guildId/commands/$id'
+import { Route as ApiGuildsGuildIdRespondersIndexRouteImport } from './routes/api/guilds/$guildId/responders/index'
+import { Route as ApiGuildsGuildIdRespondersIdRouteImport } from './routes/api/guilds/$guildId/responders/$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const McpRoute = McpRouteImport.update({
-  id: '/mcp',
-  path: '/mcp',
+const ApiRouteRoute = ApiRouteRouteImport.update({
+  id: '/api',
+  path: '/api',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardRouteRoute = DashboardRouteRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStatsRoute = ApiStatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
+  getParentRoute: () => ApiRouteRoute,
+} as any)
+const ApiStatusRoute = ApiStatusRouteImport.update({
+  id: '/status',
+  path: '/status',
+  getParentRoute: () => ApiRouteRoute,
+} as any)
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardGuildIdRouteRoute = DashboardGuildIdRouteRouteImport.update({
+  id: '/$guildId',
+  path: '/$guildId',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const ApiGuildsIndexRoute = ApiGuildsIndexRouteImport.update({
+  id: '/guilds/',
+  path: '/guilds/',
+  getParentRoute: () => ApiRouteRoute,
+} as any)
+const DashboardGuildIdIndexRoute = DashboardGuildIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardGuildIdRouteRoute,
+} as any)
+const DashboardGuildIdActivityRoute =
+  DashboardGuildIdActivityRouteImport.update({
+    id: '/activity',
+    path: '/activity',
+    getParentRoute: () => DashboardGuildIdRouteRoute,
+  } as any)
+const DashboardGuildIdCommandsRoute =
+  DashboardGuildIdCommandsRouteImport.update({
+    id: '/commands',
+    path: '/commands',
+    getParentRoute: () => DashboardGuildIdRouteRoute,
+  } as any)
+const DashboardGuildIdRespondersRoute =
+  DashboardGuildIdRespondersRouteImport.update({
+    id: '/responders',
+    path: '/responders',
+    getParentRoute: () => DashboardGuildIdRouteRoute,
+  } as any)
+const DashboardGuildIdWelcomeRoute = DashboardGuildIdWelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
+  getParentRoute: () => DashboardGuildIdRouteRoute,
+} as any)
+const ApiGuildsGuildIdIndexRoute = ApiGuildsGuildIdIndexRouteImport.update({
+  id: '/guilds/$guildId/',
+  path: '/guilds/$guildId/',
+  getParentRoute: () => ApiRouteRoute,
+} as any)
+const ApiGuildsGuildIdActivityRoute =
+  ApiGuildsGuildIdActivityRouteImport.update({
+    id: '/guilds/$guildId/activity',
+    path: '/guilds/$guildId/activity',
+    getParentRoute: () => ApiRouteRoute,
+  } as any)
+const ApiGuildsGuildIdChannelsRoute =
+  ApiGuildsGuildIdChannelsRouteImport.update({
+    id: '/guilds/$guildId/channels',
+    path: '/guilds/$guildId/channels',
+    getParentRoute: () => ApiRouteRoute,
+  } as any)
+const ApiGuildsGuildIdRolesRoute = ApiGuildsGuildIdRolesRouteImport.update({
+  id: '/guilds/$guildId/roles',
+  path: '/guilds/$guildId/roles',
+  getParentRoute: () => ApiRouteRoute,
+} as any)
+const ApiGuildsGuildIdWelcomeRoute = ApiGuildsGuildIdWelcomeRouteImport.update({
+  id: '/guilds/$guildId/welcome',
+  path: '/guilds/$guildId/welcome',
+  getParentRoute: () => ApiRouteRoute,
+} as any)
+const ApiGuildsGuildIdCommandsIndexRoute =
+  ApiGuildsGuildIdCommandsIndexRouteImport.update({
+    id: '/guilds/$guildId/commands/',
+    path: '/guilds/$guildId/commands/',
+    getParentRoute: () => ApiRouteRoute,
+  } as any)
+const ApiGuildsGuildIdCommandsIdRoute =
+  ApiGuildsGuildIdCommandsIdRouteImport.update({
+    id: '/guilds/$guildId/commands/$id',
+    path: '/guilds/$guildId/commands/$id',
+    getParentRoute: () => ApiRouteRoute,
+  } as any)
+const ApiGuildsGuildIdRespondersIndexRoute =
+  ApiGuildsGuildIdRespondersIndexRouteImport.update({
+    id: '/guilds/$guildId/responders/',
+    path: '/guilds/$guildId/responders/',
+    getParentRoute: () => ApiRouteRoute,
+  } as any)
+const ApiGuildsGuildIdRespondersIdRoute =
+  ApiGuildsGuildIdRespondersIdRouteImport.update({
+    id: '/guilds/$guildId/responders/$id',
+    path: '/guilds/$guildId/responders/$id',
+    getParentRoute: () => ApiRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/mcp': typeof McpRoute
+  '/api': typeof ApiRouteRouteWithChildren
+  '/dashboard': typeof DashboardRouteRouteWithChildren
+  '/dashboard/$guildId': typeof DashboardGuildIdRouteRouteWithChildren
+  '/api/stats': typeof ApiStatsRoute
+  '/api/status': typeof ApiStatusRoute
+  '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/$guildId/activity': typeof DashboardGuildIdActivityRoute
+  '/dashboard/$guildId/commands': typeof DashboardGuildIdCommandsRoute
+  '/dashboard/$guildId/responders': typeof DashboardGuildIdRespondersRoute
+  '/dashboard/$guildId/welcome': typeof DashboardGuildIdWelcomeRoute
+  '/api/guilds/': typeof ApiGuildsIndexRoute
+  '/dashboard/$guildId/': typeof DashboardGuildIdIndexRoute
+  '/api/guilds/$guildId/activity': typeof ApiGuildsGuildIdActivityRoute
+  '/api/guilds/$guildId/channels': typeof ApiGuildsGuildIdChannelsRoute
+  '/api/guilds/$guildId/roles': typeof ApiGuildsGuildIdRolesRoute
+  '/api/guilds/$guildId/welcome': typeof ApiGuildsGuildIdWelcomeRoute
+  '/api/guilds/$guildId/': typeof ApiGuildsGuildIdIndexRoute
+  '/api/guilds/$guildId/commands/$id': typeof ApiGuildsGuildIdCommandsIdRoute
+  '/api/guilds/$guildId/responders/$id': typeof ApiGuildsGuildIdRespondersIdRoute
+  '/api/guilds/$guildId/commands/': typeof ApiGuildsGuildIdCommandsIndexRoute
+  '/api/guilds/$guildId/responders/': typeof ApiGuildsGuildIdRespondersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/mcp': typeof McpRoute
+  '/api': typeof ApiRouteRouteWithChildren
+  '/api/stats': typeof ApiStatsRoute
+  '/api/status': typeof ApiStatusRoute
+  '/dashboard': typeof DashboardIndexRoute
+  '/dashboard/$guildId/activity': typeof DashboardGuildIdActivityRoute
+  '/dashboard/$guildId/commands': typeof DashboardGuildIdCommandsRoute
+  '/dashboard/$guildId/responders': typeof DashboardGuildIdRespondersRoute
+  '/dashboard/$guildId/welcome': typeof DashboardGuildIdWelcomeRoute
+  '/api/guilds': typeof ApiGuildsIndexRoute
+  '/dashboard/$guildId': typeof DashboardGuildIdIndexRoute
+  '/api/guilds/$guildId/activity': typeof ApiGuildsGuildIdActivityRoute
+  '/api/guilds/$guildId/channels': typeof ApiGuildsGuildIdChannelsRoute
+  '/api/guilds/$guildId/roles': typeof ApiGuildsGuildIdRolesRoute
+  '/api/guilds/$guildId/welcome': typeof ApiGuildsGuildIdWelcomeRoute
+  '/api/guilds/$guildId': typeof ApiGuildsGuildIdIndexRoute
+  '/api/guilds/$guildId/commands/$id': typeof ApiGuildsGuildIdCommandsIdRoute
+  '/api/guilds/$guildId/responders/$id': typeof ApiGuildsGuildIdRespondersIdRoute
+  '/api/guilds/$guildId/commands': typeof ApiGuildsGuildIdCommandsIndexRoute
+  '/api/guilds/$guildId/responders': typeof ApiGuildsGuildIdRespondersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/mcp': typeof McpRoute
+  '/api': typeof ApiRouteRouteWithChildren
+  '/dashboard': typeof DashboardRouteRouteWithChildren
+  '/dashboard/$guildId': typeof DashboardGuildIdRouteRouteWithChildren
+  '/api/stats': typeof ApiStatsRoute
+  '/api/status': typeof ApiStatusRoute
+  '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/$guildId/activity': typeof DashboardGuildIdActivityRoute
+  '/dashboard/$guildId/commands': typeof DashboardGuildIdCommandsRoute
+  '/dashboard/$guildId/responders': typeof DashboardGuildIdRespondersRoute
+  '/dashboard/$guildId/welcome': typeof DashboardGuildIdWelcomeRoute
+  '/api/guilds/': typeof ApiGuildsIndexRoute
+  '/dashboard/$guildId/': typeof DashboardGuildIdIndexRoute
+  '/api/guilds/$guildId/activity': typeof ApiGuildsGuildIdActivityRoute
+  '/api/guilds/$guildId/channels': typeof ApiGuildsGuildIdChannelsRoute
+  '/api/guilds/$guildId/roles': typeof ApiGuildsGuildIdRolesRoute
+  '/api/guilds/$guildId/welcome': typeof ApiGuildsGuildIdWelcomeRoute
+  '/api/guilds/$guildId/': typeof ApiGuildsGuildIdIndexRoute
+  '/api/guilds/$guildId/commands/$id': typeof ApiGuildsGuildIdCommandsIdRoute
+  '/api/guilds/$guildId/responders/$id': typeof ApiGuildsGuildIdRespondersIdRoute
+  '/api/guilds/$guildId/commands/': typeof ApiGuildsGuildIdCommandsIndexRoute
+  '/api/guilds/$guildId/responders/': typeof ApiGuildsGuildIdRespondersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/mcp'
+  fullPaths:
+    | '/'
+    | '/api'
+    | '/dashboard'
+    | '/dashboard/$guildId'
+    | '/api/stats'
+    | '/api/status'
+    | '/dashboard/'
+    | '/dashboard/$guildId/activity'
+    | '/dashboard/$guildId/commands'
+    | '/dashboard/$guildId/responders'
+    | '/dashboard/$guildId/welcome'
+    | '/api/guilds/'
+    | '/dashboard/$guildId/'
+    | '/api/guilds/$guildId/activity'
+    | '/api/guilds/$guildId/channels'
+    | '/api/guilds/$guildId/roles'
+    | '/api/guilds/$guildId/welcome'
+    | '/api/guilds/$guildId/'
+    | '/api/guilds/$guildId/commands/$id'
+    | '/api/guilds/$guildId/responders/$id'
+    | '/api/guilds/$guildId/commands/'
+    | '/api/guilds/$guildId/responders/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/mcp'
-  id: '__root__' | '/' | '/mcp'
+  to:
+    | '/'
+    | '/api'
+    | '/api/stats'
+    | '/api/status'
+    | '/dashboard'
+    | '/dashboard/$guildId/activity'
+    | '/dashboard/$guildId/commands'
+    | '/dashboard/$guildId/responders'
+    | '/dashboard/$guildId/welcome'
+    | '/api/guilds'
+    | '/dashboard/$guildId'
+    | '/api/guilds/$guildId/activity'
+    | '/api/guilds/$guildId/channels'
+    | '/api/guilds/$guildId/roles'
+    | '/api/guilds/$guildId/welcome'
+    | '/api/guilds/$guildId'
+    | '/api/guilds/$guildId/commands/$id'
+    | '/api/guilds/$guildId/responders/$id'
+    | '/api/guilds/$guildId/commands'
+    | '/api/guilds/$guildId/responders'
+  id:
+    | '__root__'
+    | '/'
+    | '/api'
+    | '/dashboard'
+    | '/dashboard/$guildId'
+    | '/api/stats'
+    | '/api/status'
+    | '/dashboard/'
+    | '/dashboard/$guildId/activity'
+    | '/dashboard/$guildId/commands'
+    | '/dashboard/$guildId/responders'
+    | '/dashboard/$guildId/welcome'
+    | '/api/guilds/'
+    | '/dashboard/$guildId/'
+    | '/api/guilds/$guildId/activity'
+    | '/api/guilds/$guildId/channels'
+    | '/api/guilds/$guildId/roles'
+    | '/api/guilds/$guildId/welcome'
+    | '/api/guilds/$guildId/'
+    | '/api/guilds/$guildId/commands/$id'
+    | '/api/guilds/$guildId/responders/$id'
+    | '/api/guilds/$guildId/commands/'
+    | '/api/guilds/$guildId/responders/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  McpRoute: typeof McpRoute
+  ApiRouteRoute: typeof ApiRouteRouteWithChildren
+  DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -58,19 +311,229 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/mcp': {
-      id: '/mcp'
-      path: '/mcp'
-      fullPath: '/mcp'
-      preLoaderRoute: typeof McpRouteImport
+    '/api': {
+      id: '/api'
+      path: '/api'
+      fullPath: '/api'
+      preLoaderRoute: typeof ApiRouteRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/stats': {
+      id: '/api/stats'
+      path: '/stats'
+      fullPath: '/api/stats'
+      preLoaderRoute: typeof ApiStatsRouteImport
+      parentRoute: typeof ApiRouteRoute
+    }
+    '/api/status': {
+      id: '/api/status'
+      path: '/status'
+      fullPath: '/api/status'
+      preLoaderRoute: typeof ApiStatusRouteImport
+      parentRoute: typeof ApiRouteRoute
+    }
+    '/dashboard/': {
+      id: '/dashboard/'
+      path: '/'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/$guildId': {
+      id: '/dashboard/$guildId'
+      path: '/$guildId'
+      fullPath: '/dashboard/$guildId'
+      preLoaderRoute: typeof DashboardGuildIdRouteRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/api/guilds/': {
+      id: '/api/guilds/'
+      path: '/guilds'
+      fullPath: '/api/guilds/'
+      preLoaderRoute: typeof ApiGuildsIndexRouteImport
+      parentRoute: typeof ApiRouteRoute
+    }
+    '/dashboard/$guildId/': {
+      id: '/dashboard/$guildId/'
+      path: '/'
+      fullPath: '/dashboard/$guildId/'
+      preLoaderRoute: typeof DashboardGuildIdIndexRouteImport
+      parentRoute: typeof DashboardGuildIdRouteRoute
+    }
+    '/dashboard/$guildId/activity': {
+      id: '/dashboard/$guildId/activity'
+      path: '/activity'
+      fullPath: '/dashboard/$guildId/activity'
+      preLoaderRoute: typeof DashboardGuildIdActivityRouteImport
+      parentRoute: typeof DashboardGuildIdRouteRoute
+    }
+    '/dashboard/$guildId/commands': {
+      id: '/dashboard/$guildId/commands'
+      path: '/commands'
+      fullPath: '/dashboard/$guildId/commands'
+      preLoaderRoute: typeof DashboardGuildIdCommandsRouteImport
+      parentRoute: typeof DashboardGuildIdRouteRoute
+    }
+    '/dashboard/$guildId/responders': {
+      id: '/dashboard/$guildId/responders'
+      path: '/responders'
+      fullPath: '/dashboard/$guildId/responders'
+      preLoaderRoute: typeof DashboardGuildIdRespondersRouteImport
+      parentRoute: typeof DashboardGuildIdRouteRoute
+    }
+    '/dashboard/$guildId/welcome': {
+      id: '/dashboard/$guildId/welcome'
+      path: '/welcome'
+      fullPath: '/dashboard/$guildId/welcome'
+      preLoaderRoute: typeof DashboardGuildIdWelcomeRouteImport
+      parentRoute: typeof DashboardGuildIdRouteRoute
+    }
+    '/api/guilds/$guildId/': {
+      id: '/api/guilds/$guildId/'
+      path: '/guilds/$guildId'
+      fullPath: '/api/guilds/$guildId/'
+      preLoaderRoute: typeof ApiGuildsGuildIdIndexRouteImport
+      parentRoute: typeof ApiRouteRoute
+    }
+    '/api/guilds/$guildId/activity': {
+      id: '/api/guilds/$guildId/activity'
+      path: '/guilds/$guildId/activity'
+      fullPath: '/api/guilds/$guildId/activity'
+      preLoaderRoute: typeof ApiGuildsGuildIdActivityRouteImport
+      parentRoute: typeof ApiRouteRoute
+    }
+    '/api/guilds/$guildId/channels': {
+      id: '/api/guilds/$guildId/channels'
+      path: '/guilds/$guildId/channels'
+      fullPath: '/api/guilds/$guildId/channels'
+      preLoaderRoute: typeof ApiGuildsGuildIdChannelsRouteImport
+      parentRoute: typeof ApiRouteRoute
+    }
+    '/api/guilds/$guildId/roles': {
+      id: '/api/guilds/$guildId/roles'
+      path: '/guilds/$guildId/roles'
+      fullPath: '/api/guilds/$guildId/roles'
+      preLoaderRoute: typeof ApiGuildsGuildIdRolesRouteImport
+      parentRoute: typeof ApiRouteRoute
+    }
+    '/api/guilds/$guildId/welcome': {
+      id: '/api/guilds/$guildId/welcome'
+      path: '/guilds/$guildId/welcome'
+      fullPath: '/api/guilds/$guildId/welcome'
+      preLoaderRoute: typeof ApiGuildsGuildIdWelcomeRouteImport
+      parentRoute: typeof ApiRouteRoute
+    }
+    '/api/guilds/$guildId/commands/': {
+      id: '/api/guilds/$guildId/commands/'
+      path: '/guilds/$guildId/commands'
+      fullPath: '/api/guilds/$guildId/commands/'
+      preLoaderRoute: typeof ApiGuildsGuildIdCommandsIndexRouteImport
+      parentRoute: typeof ApiRouteRoute
+    }
+    '/api/guilds/$guildId/commands/$id': {
+      id: '/api/guilds/$guildId/commands/$id'
+      path: '/guilds/$guildId/commands/$id'
+      fullPath: '/api/guilds/$guildId/commands/$id'
+      preLoaderRoute: typeof ApiGuildsGuildIdCommandsIdRouteImport
+      parentRoute: typeof ApiRouteRoute
+    }
+    '/api/guilds/$guildId/responders/': {
+      id: '/api/guilds/$guildId/responders/'
+      path: '/guilds/$guildId/responders'
+      fullPath: '/api/guilds/$guildId/responders/'
+      preLoaderRoute: typeof ApiGuildsGuildIdRespondersIndexRouteImport
+      parentRoute: typeof ApiRouteRoute
+    }
+    '/api/guilds/$guildId/responders/$id': {
+      id: '/api/guilds/$guildId/responders/$id'
+      path: '/guilds/$guildId/responders/$id'
+      fullPath: '/api/guilds/$guildId/responders/$id'
+      preLoaderRoute: typeof ApiGuildsGuildIdRespondersIdRouteImport
+      parentRoute: typeof ApiRouteRoute
     }
   }
 }
 
+interface ApiRouteRouteChildren {
+  ApiStatsRoute: typeof ApiStatsRoute
+  ApiStatusRoute: typeof ApiStatusRoute
+  ApiGuildsIndexRoute: typeof ApiGuildsIndexRoute
+  ApiGuildsGuildIdActivityRoute: typeof ApiGuildsGuildIdActivityRoute
+  ApiGuildsGuildIdChannelsRoute: typeof ApiGuildsGuildIdChannelsRoute
+  ApiGuildsGuildIdRolesRoute: typeof ApiGuildsGuildIdRolesRoute
+  ApiGuildsGuildIdWelcomeRoute: typeof ApiGuildsGuildIdWelcomeRoute
+  ApiGuildsGuildIdIndexRoute: typeof ApiGuildsGuildIdIndexRoute
+  ApiGuildsGuildIdCommandsIdRoute: typeof ApiGuildsGuildIdCommandsIdRoute
+  ApiGuildsGuildIdRespondersIdRoute: typeof ApiGuildsGuildIdRespondersIdRoute
+  ApiGuildsGuildIdCommandsIndexRoute: typeof ApiGuildsGuildIdCommandsIndexRoute
+  ApiGuildsGuildIdRespondersIndexRoute: typeof ApiGuildsGuildIdRespondersIndexRoute
+}
+
+const ApiRouteRouteChildren: ApiRouteRouteChildren = {
+  ApiStatsRoute: ApiStatsRoute,
+  ApiStatusRoute: ApiStatusRoute,
+  ApiGuildsIndexRoute: ApiGuildsIndexRoute,
+  ApiGuildsGuildIdActivityRoute: ApiGuildsGuildIdActivityRoute,
+  ApiGuildsGuildIdChannelsRoute: ApiGuildsGuildIdChannelsRoute,
+  ApiGuildsGuildIdRolesRoute: ApiGuildsGuildIdRolesRoute,
+  ApiGuildsGuildIdWelcomeRoute: ApiGuildsGuildIdWelcomeRoute,
+  ApiGuildsGuildIdIndexRoute: ApiGuildsGuildIdIndexRoute,
+  ApiGuildsGuildIdCommandsIdRoute: ApiGuildsGuildIdCommandsIdRoute,
+  ApiGuildsGuildIdRespondersIdRoute: ApiGuildsGuildIdRespondersIdRoute,
+  ApiGuildsGuildIdCommandsIndexRoute: ApiGuildsGuildIdCommandsIndexRoute,
+  ApiGuildsGuildIdRespondersIndexRoute: ApiGuildsGuildIdRespondersIndexRoute,
+}
+
+const ApiRouteRouteWithChildren = ApiRouteRoute._addFileChildren(
+  ApiRouteRouteChildren,
+)
+
+interface DashboardGuildIdRouteRouteChildren {
+  DashboardGuildIdActivityRoute: typeof DashboardGuildIdActivityRoute
+  DashboardGuildIdCommandsRoute: typeof DashboardGuildIdCommandsRoute
+  DashboardGuildIdRespondersRoute: typeof DashboardGuildIdRespondersRoute
+  DashboardGuildIdWelcomeRoute: typeof DashboardGuildIdWelcomeRoute
+  DashboardGuildIdIndexRoute: typeof DashboardGuildIdIndexRoute
+}
+
+const DashboardGuildIdRouteRouteChildren: DashboardGuildIdRouteRouteChildren = {
+  DashboardGuildIdActivityRoute: DashboardGuildIdActivityRoute,
+  DashboardGuildIdCommandsRoute: DashboardGuildIdCommandsRoute,
+  DashboardGuildIdRespondersRoute: DashboardGuildIdRespondersRoute,
+  DashboardGuildIdWelcomeRoute: DashboardGuildIdWelcomeRoute,
+  DashboardGuildIdIndexRoute: DashboardGuildIdIndexRoute,
+}
+
+const DashboardGuildIdRouteRouteWithChildren =
+  DashboardGuildIdRouteRoute._addFileChildren(
+    DashboardGuildIdRouteRouteChildren,
+  )
+
+interface DashboardRouteRouteChildren {
+  DashboardGuildIdRouteRoute: typeof DashboardGuildIdRouteRouteWithChildren
+  DashboardIndexRoute: typeof DashboardIndexRoute
+}
+
+const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
+  DashboardGuildIdRouteRoute: DashboardGuildIdRouteRouteWithChildren,
+  DashboardIndexRoute: DashboardIndexRoute,
+}
+
+const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
+  DashboardRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  McpRoute: McpRoute,
+  ApiRouteRoute: ApiRouteRouteWithChildren,
+  DashboardRouteRoute: DashboardRouteRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
