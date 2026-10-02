@@ -12,6 +12,7 @@ const summaryColumns = {
   scheduleCount: sql<number>`(select count(*)::int from scheduled_messages s where s.guild_id = guilds.id)`,
   reminderCount: sql<number>`(select count(*)::int from reminders m where m.guild_id = guilds.id and m.status = 'pending')`,
   remindersEnabled: sql<boolean>`coalesce((select rs.enabled from reminder_settings rs where rs.guild_id = guilds.id), true)`,
+  aiEnabled: sql<boolean>`coalesce((select ai.enabled from ai_chat_settings ai where ai.guild_id = guilds.id), true)`,
   welcomeEnabled: sql<boolean>`coalesce((select w.enabled from welcome_settings w where w.guild_id = guilds.id), false)`,
 }
 

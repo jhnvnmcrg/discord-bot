@@ -31,6 +31,7 @@ function SetupRow({
     | '/dashboard/$guildId/responders'
     | '/dashboard/$guildId/schedules'
     | '/dashboard/$guildId/reminders'
+    | '/dashboard/$guildId/ai'
     | '/dashboard/$guildId/welcome'
   label: string
   status: string
@@ -104,6 +105,12 @@ function GuildOverview() {
                     : 'Off'
                 }
                 on={guild.remindersEnabled}
+              />
+              <SetupRow
+                to="/dashboard/$guildId/ai"
+                label="AI chat"
+                status={guild.aiEnabled ? 'On' : 'Off'}
+                on={guild.aiEnabled}
               />
               <SetupRow
                 to="/dashboard/$guildId/welcome"

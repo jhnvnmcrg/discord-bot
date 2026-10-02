@@ -13,6 +13,7 @@ import {
   PlusIcon,
   SendIcon,
   SlashSquareIcon,
+  SparklesIcon,
 } from 'lucide-react'
 
 import { BotStatus } from '#/components/bot-status'
@@ -150,6 +151,7 @@ function GuildNav({ guild }: { guild: GuildSummary }) {
     { to: '/dashboard/$guildId/responders', label: 'Auto-responders', icon: MessageSquareReplyIcon, badge: guild.responderCount },
     { to: '/dashboard/$guildId/schedules', label: 'Scheduled messages', icon: CalendarClockIcon, badge: guild.scheduleCount },
     { to: '/dashboard/$guildId/reminders', label: 'Reminders', icon: BellIcon, badge: guild.reminderCount },
+    { to: '/dashboard/$guildId/ai', label: 'AI chat', icon: SparklesIcon },
     { to: '/dashboard/$guildId/welcome', label: 'Welcome', icon: HandIcon },
     { to: '/dashboard/$guildId/activity', label: 'Activity', icon: ActivityIcon },
   ] as const

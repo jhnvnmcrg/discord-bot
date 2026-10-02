@@ -36,6 +36,7 @@ export type GuildSummary = Serialized<Guild> & {
   scheduleCount: number
   reminderCount: number
   remindersEnabled: boolean
+  aiEnabled: boolean
   welcomeEnabled: boolean
 }
 
@@ -97,3 +98,14 @@ export type StatsResponse = {
 
 export type ApiIssue = { path: string; message: string }
 export type ApiError = { error: string; issues?: ApiIssue[] }
+
+export type AiChatDto = {
+  enabled: boolean
+  persona: string
+  cooldownSeconds: number
+  /** Whether GEMINI_API_KEY is set where the dashboard runs. */
+  configured: boolean
+  model: string
+}
+
+export type AiChatTestReply = { reply: string; model: string; ms: number }
