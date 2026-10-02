@@ -281,3 +281,29 @@ export const sendMessageFields = z.object({
 export const sendMessageInput = sendMessageFields.superRefine(refineReply)
 
 export type SendMessageInput = z.infer<typeof sendMessageInput>
+
+export const aiChatSettingsInput = z.object({
+  enabled: z.boolean(),
+  persona: z.string().max(1000, 'Keep it under 1000 characters'),
+  cooldownSeconds: z
+    .number()
+    .int()
+    .min(0, 'Cooldown cannot be negative')
+    .max(600, 'Cooldown can be at most 10 minutes'),
+})
+
+export type AiChatSettingsInput = z.infer<typeof aiChatSettingsInput>
+
+/** The dashboard's "Try it" box: a short conversation, newest last. */
+export const aiChatTestInput = z.object({
+  messages: z
+    .array(
+      z.object({
+        fromBot: z.boolean(),
+        content: z.string().trim().min(1, 'Type a message').max(2000),
+      }),
+    )
+    .min(1)
+    .max(20),
+  persona: z.string().max(1000),
+})

@@ -2,6 +2,7 @@ import { type Client, Events } from 'discord.js'
 
 import { renderTemplate } from '#/lib/templates.ts'
 
+import { handleAiChat } from '../ai-chat.ts'
 import { getGuildConfig } from '../config-cache.ts'
 import { logActivity, logError } from '../log.ts'
 import { templateVars } from '../template-vars.ts'
@@ -21,6 +22,9 @@ export function registerMessageEvents(client: Client) {
   client.on(Events.MessageCreate, async (message) => {
     if (!message.inGuild() || message.author.bot || message.webhookId) return
     if (message.system || !message.content) return
+
+    // Messages addressed to the bot get an AI answer instead of auto-responses.
+    if (client.isReady() && (await handleAiChat(client, message))) return
 
     // The first matching responder wins; one message gets at most one reply.
     const responder = getGuildConfig(message.guildId).responders.find((r) =>

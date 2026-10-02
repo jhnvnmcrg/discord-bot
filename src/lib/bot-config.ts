@@ -3,7 +3,7 @@
 /** Postgres NOTIFY channel the API signals on after every config write. */
 export const CONFIG_CHANNEL = 'bot_config'
 
-export type ConfigTable = 'commands' | 'responders' | 'welcome' | 'reminders'
+export type ConfigTable = 'commands' | 'responders' | 'welcome' | 'reminders' | 'ai'
 
 export type ConfigChange = { table: ConfigTable; guildId: string }
 

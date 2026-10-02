@@ -8,6 +8,7 @@ A Discord bot and the web dashboard that configures it. Admins manage, per serve
 - **Scheduled messages**: one-time, daily, weekly, monthly or a custom cron, in a time zone you pick.
 - **Reminders**: members set their own with `/remind`, delivered in the channel or by DM.
 - **Send a message**: post as the bot in a channel, or DM a member, straight from the dashboard.
+- **AI chat**: members @mention the bot and it answers like a chatbot, using Google Gemini.
 - **Activity**: a log of everything the bot did, with 7-day stats.
 
 Everything the dashboard does goes through a REST API (`/api/*`), which you can also call from scripts.
@@ -45,6 +46,8 @@ Copy `.env.example` to `.env` and fill it in:
 | `ADMIN_USER_IDS` | Comma-separated Clerk user ids allowed to manage the bot. **Required.** When it's empty, nobody gets in, because Clerk sign-up is open by default. Sign in once and the dashboard shows the id to add. |
 | `DASHBOARD_API_KEY` | Optional. Lets scripts call the API with an `x-api-key` header. |
 | `DISCORD_TOKEN` | Used by the bot, and by the web app to list channels and roles. |
+| `GEMINI_API_KEY` | Optional. Turns on AI chat. Set it for the bot, and for the dashboard if you want Try it. |
+| `GEMINI_MODEL` | Optional. Defaults to `gemini-3.8-flash`. |
 
 ### 3. Database
 
@@ -83,6 +86,8 @@ Every route needs either an admin Clerk session or an `x-api-key: $DASHBOARD_API
 | POST | `/api/guilds/:guildId/schedules/:id/send` | Send now, over Discord's API, without changing the schedule |
 | POST | `/api/guilds/:guildId/messages` | Send a message now, to a channel or a member's DMs (see below) |
 | GET | `/api/guilds/:guildId/members?query=` | Search members whose username or nickname starts with `query` (bots are excluded) |
+| GET, PUT | `/api/guilds/:guildId/ai` | AI chat settings: on/off, personality, cooldown |
+| POST | `/api/guilds/:guildId/ai/test` | Try a conversation (`messages`, `persona`) without posting to Discord |
 | GET, PUT | `/api/guilds/:guildId/reminders/settings` | Turn `/remind` on or off, default time zone, per-member limit |
 | GET | `/api/guilds/:guildId/reminders` | Members' upcoming reminders |
 | DELETE | `/api/guilds/:guildId/reminders/:id` | Cancel a member's reminder |
@@ -147,6 +152,24 @@ Every message the dashboard sends can ping one thing: a member, a role, `@here` 
 - **Refused DMs**: a DM fails with a clear message when the member has turned off DMs from server members.
 - **History**: every send is logged in Activity under "Sent from web", with a link to the message for channel posts and the Clerk user who sent it. The page lists the last 10.
 
+## AI chat
+
+With `GEMINI_API_KEY` set, members can talk to the bot:
+
+- **Starting a chat**: @mention the bot, or its role, with a question. It answers as a reply, showing "typing…" while it thinks.
+- **Continuing**: reply to one of its answers to keep the conversation going. It reads the reply chain, up to 10 messages back, so follow-up questions have context. Replying to any of the bot's messages works too, scheduled announcements included.
+- **Dashboard settings**: the **AI chat** page has, per server:
+  - an on/off switch
+  - personality and instructions, such as who it is or what to point people to
+  - a cooldown for each member, during which further mentions just get a ⏳ reaction
+- **Try it**: the same page lets you chat with your unsaved personality before saving it.
+- **Pings**: answers ping only the person who asked. `@everyone`, roles and other mentions in an answer stay plain text.
+- **Long answers**: split into up to 3 messages.
+- **Busy models**: if Gemini reports an overload or a rate limit, the bot tries `gemini-3.5-flash`, then `gemini-2.5-flash`.
+- **Errors**: if every model fails, the bot apologises in the channel and logs the error. The member's cooldown isn't used up.
+- **Auto-responders**: a message addressed to the bot gets an AI answer instead of auto-responses.
+- **Activity**: every answer is logged on the Activity page under "AI replies", with the model used and how long it took.
+
 ## Reminders
 
 Members use `/remind`, which the bot registers in every server where reminders are on:
@@ -189,10 +212,10 @@ How it behaves:
 
 ## Code map
 
-- `bot/`: the discord.js process: event handlers, config cache, LISTEN client, heartbeat, scheduler and `/remind`.
+- `bot/`: the discord.js process: event handlers, config cache, LISTEN client, heartbeat, scheduler, `/remind` and AI chat.
 - `src/db/schema.ts`: Drizzle schema. `drizzle/` holds the generated migrations.
 - `src/routes/api/`: the REST API. Auth is enforced for all of `/api` by `src/routes/api/route.ts`.
 - `src/routes/dashboard/`: the dashboard, client-rendered (`ssr: false`).
 - `src/server/`: server-only helpers for Discord REST, auth, sending and scheduling.
-- `src/lib/`: code shared by the bot and the web app, such as schemas, templates, matching, scheduling (`schedule.ts`) and the API client.
+- `src/lib/`: code shared by the bot and the web app, such as schemas, templates, matching, scheduling (`schedule.ts`), the Gemini chat prompt (`ai-chat.ts`) and the API client.
 - `src/styles.css`: theme tokens, dark only.

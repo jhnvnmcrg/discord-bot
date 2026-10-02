@@ -17,6 +17,31 @@ export const SAMPLE_VARS: Required<TemplateVars> = {
   ping: '@everyone',
 }
 
+// Discord's inline markdown: **bold**, __underline__, *italic*, _italic_,
+// ~~strike~~ and `code`. React escapes the text, so this can't inject HTML.
+const INLINE_MARKDOWN =
+  /(\*\*[^*\n]+\*\*|__[^_\n]+__|\*[^*\n]+\*|_[^_\n]+_|~~[^~\n]+~~|`[^`\n]+`)/g
+
+function InlineMarkdown({ text }: { text: string }) {
+  return text.split(INLINE_MARKDOWN).map((part, index) => {
+    const key = `${index}:${part}`
+    if (part.startsWith('**') && part.endsWith('**') && part.length > 4)
+      return <strong key={key}>{part.slice(2, -2)}</strong>
+    if (part.startsWith('__') && part.endsWith('__') && part.length > 4)
+      return <u key={key}>{part.slice(2, -2)}</u>
+    if (part.startsWith('~~') && part.endsWith('~~') && part.length > 4)
+      return <s key={key}>{part.slice(2, -2)}</s>
+    if (part.startsWith('`') && part.endsWith('`') && part.length > 2)
+      return (
+        <code key={key} className="rounded-sm bg-background px-1 text-[0.85em]">
+          {part.slice(1, -1)}
+        </code>
+      )
+    if (/^([*_]).+\1$/.test(part)) return <em key={key}>{part.slice(1, -1)}</em>
+    return part
+  })
+}
+
 function MessageText({
   template,
   vars = SAMPLE_VARS,
@@ -27,7 +52,10 @@ function MessageText({
   return (
     <p className="leading-relaxed break-words whitespace-pre-wrap">
       {tokenizeTemplate(template).map((token, index) => {
-        if (token.type === 'text') return token.value
+        if (token.type === 'text') {
+          // biome-ignore lint/suspicious/noArrayIndexKey: tokens have no identity
+          return <InlineMarkdown key={index} text={token.value} />
+        }
         const value = vars[token.key] ?? `{${token.key}}`
         const isMention =
           token.key === 'user' || token.key === 'channel' || token.key === 'ping'

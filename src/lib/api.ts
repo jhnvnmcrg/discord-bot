@@ -8,6 +8,8 @@ import {
 import type { ActivityType } from '#/db/schema'
 import type {
   ActivityPage,
+  AiChatDto,
+  AiChatTestReply,
   ApiError,
   ApiIssue,
   BotStatusDto,
@@ -25,6 +27,7 @@ import type {
   WelcomeDto,
 } from './api-types'
 import type {
+  AiChatSettingsInput,
   CommandInput,
   ReminderSettingsInput,
   ResponderInput,
@@ -79,6 +82,7 @@ export const keys = {
   welcome: (guildId: string) => ['guilds', guildId, 'welcome'] as const,
   schedules: (guildId: string) => ['guilds', guildId, 'schedules'] as const,
   reminders: (guildId: string) => ['guilds', guildId, 'reminders'] as const,
+  ai: (guildId: string) => ['guilds', guildId, 'ai'] as const,
   activity: (guildId: string) => ['guilds', guildId, 'activity'] as const,
   stats: ['stats'] as const,
 }
@@ -150,6 +154,11 @@ export const queries = {
       queryKey: [...keys.reminders(guildId), 'settings'],
       queryFn: () =>
         request<ReminderSettingsDto>(`/guilds/${guildId}/reminders/settings`),
+    }),
+  ai: (guildId: string) =>
+    queryOptions({
+      queryKey: keys.ai(guildId),
+      queryFn: () => request<AiChatDto>(`/guilds/${guildId}/ai`),
     }),
   welcome: (guildId: string) =>
     queryOptions({
@@ -304,6 +313,23 @@ export function useSendMessage(guildId: string) {
       request<SentMessage>(`/guilds/${guildId}/messages`, send('POST', input)),
     [keys.activity(guildId), keys.stats],
   )
+}
+
+export function useSaveAiChat(guildId: string) {
+  return useInvalidatingMutation(
+    (input: AiChatSettingsInput) =>
+      request<AiChatDto>(`/guilds/${guildId}/ai`, send('PUT', input)),
+    [keys.ai(guildId), keys.guilds],
+  )
+}
+
+export function useTestAiChat(guildId: string) {
+  return useMutation({
+    mutationFn: (input: {
+      messages: { fromBot: boolean; content: string }[]
+      persona: string
+    }) => request<AiChatTestReply>(`/guilds/${guildId}/ai/test`, send('POST', input)),
+  })
 }
 
 export function useSaveWelcome(guildId: string) {

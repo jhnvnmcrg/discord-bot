@@ -3,6 +3,7 @@ import './env.ts'
 import { Client, Events, GatewayIntentBits } from 'discord.js'
 
 import { db } from '#/db/index.ts'
+import { aiChatConfigured, geminiModel } from '#/lib/ai-chat.ts'
 
 import { scheduleCommandSync, syncGuildCommands } from './commands.ts'
 import { reloadAll, reloadGuild } from './config-cache.ts'
@@ -68,6 +69,11 @@ let fallbackTimer: NodeJS.Timeout | undefined
 
 client.once(Events.ClientReady, async (ready) => {
   console.log(`Logged in as ${ready.user.tag} in ${ready.guilds.cache.size} servers`)
+  console.log(
+    aiChatConfigured()
+      ? `AI chat is on (${geminiModel()}): members can @mention the bot.`
+      : 'AI chat is off: set GEMINI_API_KEY to let members @mention the bot.',
+  )
   const guilds = [...ready.guilds.cache.values()]
   try {
     await syncAllGuilds(guilds)

@@ -2,7 +2,9 @@ import { eq } from 'drizzle-orm'
 
 import { db } from '#/db/index.ts'
 import {
+  type AiChatSettings,
   type AutoResponder,
+  aiChatSettings,
   autoResponders,
   type CustomCommand,
   customCommands,
@@ -27,6 +29,7 @@ type GuildConfig = {
   welcome?: WelcomeSettings
   /** Undefined until an admin saves settings; the defaults apply then. */
   reminders?: ReminderSettings
+  ai?: AiChatSettings
 }
 
 const cache = new Map<string, GuildConfig>()
@@ -90,14 +93,22 @@ export async function reloadGuild(guildId: string, table?: ConfigTable) {
       .where(eq(reminderSettings.guildId, guildId))
     config.reminders = row
   }
+  if (!table || table === 'ai') {
+    const [row] = await db
+      .select()
+      .from(aiChatSettings)
+      .where(eq(aiChatSettings.guildId, guildId))
+    config.ai = row
+  }
 }
 
 export async function reloadAll() {
-  const [commands, responders, welcome, reminderRows] = await Promise.all([
+  const [commands, responders, welcome, reminderRows, aiRows] = await Promise.all([
     db.select().from(customCommands),
     db.select().from(autoResponders).orderBy(autoResponders.createdAt),
     db.select().from(welcomeSettings),
     db.select().from(reminderSettings),
+    db.select().from(aiChatSettings),
   ])
   cache.clear()
   for (const [guildId, rows] of groupBy(commands)) {
@@ -111,6 +122,19 @@ export async function reloadAll() {
   }
   for (const row of reminderRows) {
     getGuildConfig(row.guildId).reminders = row
+  }
+  for (const row of aiRows) {
+    getGuildConfig(row.guildId).ai = row
+  }
+}
+
+/** AI chat settings with defaults filled in for servers that never saved any. */
+export function aiChatSettingsFor(guildId: string) {
+  const saved = getGuildConfig(guildId).ai
+  return {
+    enabled: saved?.enabled ?? true,
+    persona: saved?.persona ?? '',
+    cooldownSeconds: saved?.cooldownSeconds ?? 5,
   }
 }
 

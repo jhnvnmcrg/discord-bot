@@ -129,6 +129,7 @@ export const activityType = pgEnum('activity_type', [
   'scheduled',
   'reminder',
   'message',
+  'ai_reply',
 ])
 
 export const activityLog = pgTable(
@@ -238,6 +239,18 @@ export const memberTimezones = pgTable('member_timezones', {
   updatedAt: updatedAt(),
 })
 
+/** How the bot chats when members @mention it (Gemini). */
+export const aiChatSettings = pgTable('ai_chat_settings', {
+  guildId: text('guild_id')
+    .primaryKey()
+    .references(() => guilds.id, { onDelete: 'cascade' }),
+  enabled: boolean().notNull().default(true),
+  /** The admins' personality and instructions, added to the system prompt. */
+  persona: text().notNull().default(''),
+  cooldownSeconds: integer('cooldown_seconds').notNull().default(5),
+  updatedAt: updatedAt(),
+})
+
 // Singleton row (id = 1) the bot upserts on every heartbeat.
 export const botStatus = pgTable('bot_status', {
   id: integer().primaryKey().default(1),
@@ -263,4 +276,5 @@ export type BotStatus = typeof botStatus.$inferSelect
 export type ScheduledMessage = typeof scheduledMessages.$inferSelect
 export type Reminder = typeof reminders.$inferSelect
 export type ReminderSettings = typeof reminderSettings.$inferSelect
+export type AiChatSettings = typeof aiChatSettings.$inferSelect
 export type ActivityType = (typeof activityType.enumValues)[number]

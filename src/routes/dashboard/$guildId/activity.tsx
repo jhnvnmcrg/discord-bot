@@ -38,6 +38,7 @@ const FILTERS = [
   { value: 'scheduled', label: 'Scheduled' },
   { value: 'reminder', label: 'Reminders' },
   { value: 'message', label: 'Sent from web' },
+  { value: 'ai_reply', label: 'AI replies' },
   { value: 'error', label: 'Errors' },
 ] as const
 
@@ -49,6 +50,7 @@ const EVENT_LABELS: Record<ActivityType, string> = {
   scheduled: 'Scheduled',
   reminder: 'Reminder',
   message: 'Sent',
+  ai_reply: 'AI reply',
   error: 'Error',
 }
 
@@ -85,6 +87,8 @@ function describe(entry: ActivityDto) {
       return meta.target === 'dm'
         ? `DM from the dashboard: ${entry.name ?? ''}`
         : `Posted from the dashboard: ${entry.name ?? ''}`
+    case 'ai_reply':
+      return `Answered: ${entry.name ?? ''}`
     case 'error':
       return typeof meta.message === 'string' ? meta.message : (entry.name ?? 'Error')
     default:
