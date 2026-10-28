@@ -4,6 +4,7 @@ import {
   aiChatConfigured,
   type ChatTurn,
   generateReply,
+  isOllamaDown,
   splitForDiscord,
 } from '#/lib/ai-chat.ts'
 
@@ -55,7 +56,7 @@ async function replyChain(start: Message | null) {
 }
 
 /**
- * Answers the message with Gemini if it's addressed to the bot. Returns true
+ * Answers the message with the AI (Ollama or Gemini) if it's addressed to the bot. Returns true
  * when it was (so auto-responders skip it), even if a cooldown suppressed it.
  */
 export async function handleAiChat(client: Client<true>, message: Message<true>) {
@@ -132,7 +133,9 @@ export async function handleAiChat(client: Client<true>, message: Message<true>)
     await logError(message.guildId, 'ai_chat', error, { channelId: message.channelId })
     await message
       .reply({
-        content: "Sorry, I couldn't come up with an answer just now. Try again in a moment.",
+        content: isOllamaDown(error)
+          ? "My AI isn't running right now, so I can't answer. Try again later."
+          : "Sorry, I couldn't come up with an answer just now. Try again in a moment.",
         allowedMentions: { parse: [], repliedUser: false },
       })
       .catch(() => {})

@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm'
 
 import { db } from '#/db/index.ts'
 import { aiChatSettings } from '#/db/schema.ts'
-import { aiChatConfigured, geminiModel } from '#/lib/ai-chat'
+import { aiStatus } from '#/lib/ai-chat'
 import type { AiChatDto } from '#/lib/api-types'
 import { aiChatSettingsInput } from '#/lib/schemas'
 import {
@@ -25,12 +25,15 @@ export const Route = createFileRoute('/api/guilds/$guildId/ai/')({
           .select()
           .from(aiChatSettings)
           .where(eq(aiChatSettings.guildId, guildId))
+        const ai = await aiStatus()
         const dto: AiChatDto = {
           enabled: row?.enabled ?? true,
           persona: row?.persona ?? '',
           cooldownSeconds: row?.cooldownSeconds ?? 5,
-          configured: aiChatConfigured(),
-          model: geminiModel(),
+          provider: ai.provider,
+          configured: ai.ready,
+          model: ai.model,
+          detail: ai.detail,
         }
         return ok(dto)
       },
@@ -50,10 +53,13 @@ export const Route = createFileRoute('/api/guilds/$guildId/ai/')({
             set: { ...parsed.data, updatedAt: new Date() },
           })
         await notifyBot('ai', guildId)
+        const ai = await aiStatus()
         const dto: AiChatDto = {
           ...parsed.data,
-          configured: aiChatConfigured(),
-          model: geminiModel(),
+          provider: ai.provider,
+          configured: ai.ready,
+          model: ai.model,
+          detail: ai.detail,
         }
         return ok(dto)
       },

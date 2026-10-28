@@ -176,16 +176,28 @@ function AiChatPage() {
     <>
       <PageHeader
         title="AI chat"
-        description={`Members talk to ${botName} by @mentioning it or replying to its messages. Answers come from Google Gemini.`}
+        description={`Members talk to ${botName} by @mentioning it or replying to its messages. ${
+          settings.provider === 'ollama'
+            ? 'Answers come from an AI model running on this computer (Ollama), so nothing leaves the machine.'
+            : 'Answers come from Google Gemini.'
+        }`}
       />
 
       {settings.configured ? null : (
         <Alert variant="destructive">
           <TriangleAlertIcon />
-          <AlertTitle>Gemini isn't set up</AlertTitle>
+          <AlertTitle>
+            {settings.provider === 'ollama' ? "The local AI can't answer yet" : "Gemini isn't set up"}
+          </AlertTitle>
           <AlertDescription>
-            Add <code>GEMINI_API_KEY</code> to the environment of the bot (so it
-            can answer in Discord) and of this dashboard (for Try it).
+            {settings.provider === 'ollama' ? (
+              <p>{settings.detail}</p>
+            ) : (
+              <p>
+                Add <code>GEMINI_API_KEY</code> to the environment of the bot (so it
+                can answer in Discord) and of this dashboard (for Try it).
+              </p>
+            )}
           </AlertDescription>
         </Alert>
       )}
@@ -304,7 +316,8 @@ function AiChatPage() {
                 roles.
               </li>
               <li>
-                Model: <code>{settings.model}</code>
+                {settings.provider === 'ollama' ? 'Local model' : 'Model'}:{' '}
+                <code>{settings.model ?? 'none installed'}</code>
               </li>
             </ul>
           </div>
