@@ -2,7 +2,12 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { db } from '#/db/index.ts'
 import { botStatus } from '#/db/schema.ts'
-import { aiChatConfigured, generateReply } from '#/lib/ai-chat'
+import {
+  aiChatConfigured,
+  generateReply,
+  isOllamaDown,
+  ollamaHost,
+} from '#/lib/ai-chat'
 import type { AiChatTestReply } from '#/lib/api-types'
 import { aiChatTestInput } from '#/lib/schemas'
 import {
@@ -23,7 +28,7 @@ export const Route = createFileRoute('/api/guilds/$guildId/ai/test')({
         const guild = await findActiveGuild(params.guildId)
         if (!guild) return guildNotFound()
         if (!aiChatConfigured()) {
-          return fail(400, 'Set GEMINI_API_KEY in the environment to use AI chat.')
+          return fail(400, 'Set GEMINI_API_KEY, or use AI_PROVIDER=ollama for a local model.')
         }
 
         const parsed = aiChatTestInput.safeParse(await readJson(request))
@@ -43,8 +48,11 @@ export const Route = createFileRoute('/api/guilds/$guildId/ai/test')({
           const body: AiChatTestReply = { reply, model, ms: Date.now() - started }
           return ok(body)
         } catch (error) {
+          if (isOllamaDown(error)) {
+            return fail(502, `Ollama isn't running at ${ollamaHost()}. Start the Ollama app or run: ollama serve`)
+          }
           const message = error instanceof Error ? error.message : String(error)
-          return fail(502, `Gemini returned an error: ${message.slice(0, 300)}`)
+          return fail(502, `The AI returned an error: ${message.slice(0, 300)}`)
         }
       },
     },

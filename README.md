@@ -8,7 +8,7 @@ A Discord bot and the web dashboard that configures it. Admins manage, per serve
 - **Scheduled messages**: one-time, daily, weekly, monthly or a custom cron, in a time zone you pick.
 - **Reminders**: members set their own with `/remind`, delivered in the channel or by DM.
 - **Send a message**: post as the bot in a channel, or DM a member, straight from the dashboard.
-- **AI chat**: members @mention the bot and it answers like a chatbot, using Google Gemini.
+- **AI chat**: members @mention the bot and it answers like a chatbot, using a local model through Ollama (or Google Gemini).
 - **Activity**: a log of everything the bot did, with 7-day stats.
 
 Everything the dashboard does goes through a REST API (`/api/*`), which you can also call from scripts.
@@ -46,7 +46,10 @@ Copy `.env.example` to `.env` and fill it in:
 | `ADMIN_USER_IDS` | Comma-separated Clerk user ids allowed to manage the bot. **Required.** When it's empty, nobody gets in, because Clerk sign-up is open by default. Sign in once and the dashboard shows the id to add. |
 | `DASHBOARD_API_KEY` | Optional. Lets scripts call the API with an `x-api-key` header. |
 | `DISCORD_TOKEN` | Used by the bot, and by the web app to list channels and roles. |
-| `GEMINI_API_KEY` | Optional. Turns on AI chat. Set it for the bot, and for the dashboard if you want Try it. |
+| `AI_PROVIDER` | `ollama` (default, runs on this machine) or `gemini`. |
+| `OLLAMA_MODEL` | The local model, such as `qwen2.5:3b`. Defaults to the first one you've pulled. |
+| `OLLAMA_HOST` | Optional. Defaults to `http://localhost:11434`. |
+| `GEMINI_API_KEY` | Only with `AI_PROVIDER=gemini`. Set it for the bot, and for the dashboard if you want Try it. |
 | `GEMINI_MODEL` | Optional. Defaults to `gemini-3.8-flash`. |
 
 ### 3. Database
@@ -154,7 +157,23 @@ Every message the dashboard sends can ping one thing: a member, a role, `@here` 
 
 ## AI chat
 
-With `GEMINI_API_KEY` set, members can talk to the bot:
+The answers come from one of two backends, picked with `AI_PROVIDER`:
+
+- **Ollama (default)**: a model running on your own computer. There's no API key and no cloud service, and conversations never leave the machine.
+  1. Install [Ollama](https://ollama.com).
+  2. Run `ollama pull qwen2.5:3b`, then set `OLLAMA_MODEL=qwen2.5:3b`.
+  3. Keep Ollama running alongside the bot.
+- **Gemini**: set `AI_PROVIDER=gemini` and `GEMINI_API_KEY`.
+
+**Choosing a local model**: pick one that fits in your GPU's memory. A model that spills onto the CPU can take minutes per reply.
+- `ollama ps` shows where the model runs. Aim for "100% GPU".
+- On a 4 GB GPU, 3B models such as `qwen2.5:3b` or `llama3.2:3b` answer in a few seconds. The first message after a restart takes longer, while the model loads.
+- The bot keeps the model loaded for 30 minutes between messages (`OLLAMA_KEEP_ALIVE`).
+- Thinking is off unless `OLLAMA_THINK=true`.
+
+**Still online**: the bot still needs the internet to talk to Discord and the database. Only the AI part runs locally.
+
+Members can talk to the bot like this:
 
 - **Starting a chat**: @mention the bot, or its role, with a question. It answers as a reply, showing "typing…" while it thinks.
 - **Continuing**: reply to one of its answers to keep the conversation going. It reads the reply chain, up to 10 messages back, so follow-up questions have context. Replying to any of the bot's messages works too, scheduled announcements included.
@@ -165,8 +184,11 @@ With `GEMINI_API_KEY` set, members can talk to the bot:
 - **Try it**: the same page lets you chat with your unsaved personality before saving it.
 - **Pings**: answers ping only the person who asked. `@everyone`, roles and other mentions in an answer stay plain text.
 - **Long answers**: split into up to 3 messages.
-- **Busy models**: if Gemini reports an overload or a rate limit, the bot tries `gemini-3.5-flash`, then `gemini-2.5-flash`.
-- **Errors**: if every model fails, the bot apologises in the channel and logs the error. The member's cooldown isn't used up.
+- **Busy models (Gemini only)**: if Gemini reports an overload or a rate limit, the bot tries other Gemini models.
+- **Errors**:
+  - If the AI fails or takes longer than 2 minutes, the bot apologises in the channel and logs the error. The member's cooldown isn't used up.
+  - If Ollama isn't running, the bot says its AI is offline.
+  - The dashboard's AI chat page shows what to fix, such as starting Ollama or pulling the model.
 - **Auto-responders**: a message addressed to the bot gets an AI answer instead of auto-responses.
 - **Activity**: every answer is logged on the Activity page under "AI replies", with the model used and how long it took.
 

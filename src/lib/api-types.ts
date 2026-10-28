@@ -103,9 +103,13 @@ export type AiChatDto = {
   enabled: boolean
   persona: string
   cooldownSeconds: number
-  /** Whether GEMINI_API_KEY is set where the dashboard runs. */
+  /** Which backend answers: a local Ollama model or Google Gemini. */
+  provider: 'ollama' | 'gemini'
+  /** Whether that backend can answer right now, as seen from the dashboard. */
   configured: boolean
-  model: string
+  model: string | null
+  /** What's wrong, or where it runs, in plain words. */
+  detail: string
 }
 
 export type AiChatTestReply = { reply: string; model: string; ms: number }
