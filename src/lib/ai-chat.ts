@@ -159,6 +159,7 @@ function systemPrompt(context: ChatContext, now: Date) {
     }.`,
     'Chat naturally and helpfully, like a friendly member of the server. Keep replies short: a few sentences unless someone asks for detail, and never more than 1800 characters.',
     'Use Discord markdown when it helps (bold, lists, code blocks). Messages from people are shown as "name: message".',
+    "Reply in the language of the member's latest message (Tagalog, Taglish, Hiligaynon, English or any other), unless the admins' instructions below say which language to use.",
     'Never try to ping @everyone, @here or roles. If you are unsure about something, say so instead of guessing.',
     `Today is ${today} (UTC).`,
     context.persona.trim()

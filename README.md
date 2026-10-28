@@ -166,12 +166,19 @@ The answers come from one of two backends, picked with `AI_PROVIDER`:
 - **Gemini**: set `AI_PROVIDER=gemini` and `GEMINI_API_KEY`.
 
 **Choosing a local model**: pick one that fits in your GPU's memory. A model that spills onto the CPU can take minutes per reply.
+
 - `ollama ps` shows where the model runs. Aim for "100% GPU".
 - On a 4 GB GPU, 3B models such as `qwen2.5:3b` or `llama3.2:3b` answer in a few seconds. The first message after a restart takes longer, while the model loads.
 - The bot keeps the model loaded for 30 minutes between messages (`OLLAMA_KEEP_ALIVE`).
 - Thinking is off unless `OLLAMA_THINK=true`.
 
 **Still online**: the bot still needs the internet to talk to Discord and the database. Only the AI part runs locally.
+
+**Languages**: the bot answers in the language the member writes in, such as Tagalog, Taglish or Hiligaynon.
+
+- To always use one language, say so in the server's personality on the AI chat page, e.g. "Always reply in Filipino (Tagalog)."
+- Gemini handles Filipino and Hiligaynon well. Small local models mostly answer in English. `gemma3:4b` writes good Tagalog when the personality asks for it, but not Hiligaynon.
+- Gemini's free tier allows only a few requests per model per day (20 at the time of writing). A busy server needs billing turned on.
 
 Members can talk to the bot like this:
 
